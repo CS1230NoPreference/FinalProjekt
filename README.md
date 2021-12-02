@@ -4,7 +4,7 @@ Team: No Preference
 
 Members: Nathan Plano, Nick Huang, Richard Tang (rtang26)
 
-We want to delver deeper into the world of fractals! Using ray-marching
+We want to delve deeper into the world of fractals! Using ray-marching
 for rendering, we plan on procedurally generating shapes from 3D
 Mandelbulbs to large-scale fractal generated terrains.
 
