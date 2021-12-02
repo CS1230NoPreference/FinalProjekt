@@ -1,7 +1,8 @@
 # CSCI1230 Final Project: Fractal Generation
 
-Team: No Preference Members: Nathan Plano, Nick Huang, Richard Tang
-(rtang26)
+Team: No Preference
+
+Members: Nathan Plano, Nick Huang, Richard Tang (rtang26)
 
 We want to delver deeper into the world of fractals! Using ray-marching
 for rendering, we plan on procedurally generating shapes from 3D
@@ -17,7 +18,7 @@ We plan on implementing our project in three steps:
 -   Generate Fractal Terrains
 
 Our final UI layout will resemble something like this: ![UI
-Layout](UILayout.png "Title")
+Layout](UILayout.png "UI Layout")
 
 ## Technical Details
 
@@ -50,7 +51,8 @@ Mandelbulb based on certain parameters (TODO: determine which).
 
 References:
 
--   [Distance Estimated 3D Fractals](http://blog.hvidtfeldts.net/index.php/2011/09/distance-estimated-3d-fractals-v-the-mandelbulb-different-de-approximations/)
+-   [Distance Estimated 3D
+    Fractals](http://blog.hvidtfeldts.net/index.php/2011/09/distance-estimated-3d-fractals-v-the-mandelbulb-different-de-approximations/)
 -   [Shadertoy Mandelbulb #1](https://www.shadertoy.com/view/WsySDR)
 -   [Shadertoy Mandelbulb #2](http://shadertoy.com/view/Mdy3Dw)
 
@@ -80,7 +82,6 @@ potential to be dynamic; that is, given the nature of fractals, they
 evolve over time. Using tools like ffmpeg, we would give users the
 ability to generate a variable-length video of a scene, and watch it
 grow.
-
 
 ## Division of Labor
 
