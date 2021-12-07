@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/shaders">
+        <file alias="default.frag">shaders/shader.frag</file>
+        <file alias="default.vert">shaders/shader.vert</file>
+        <file alias="wireframe.frag">shaders/wireframe/wireframe.frag</file>
+        <file alias="wireframe.vert">shaders/wireframe/wireframe.vert</file>
+        <file alias="fullscreenquad.vert">shaders/fullscreenquad/fullscreenquad.vert</file>
+        <file alias="fullscreenquad.frag">shaders/fullscreenquad/fullscreenquad.frag</file>
+        <file alias="normals.frag">shaders/normals/normals.frag</file>
+        <file alias="normals.gsh">shaders/normals/normals.gsh</file>
+        <file alias="normals.vert">shaders/normals/normals.vert</file>
+        <file alias="normalsArrow.frag">shaders/normals/normalsArrow.frag</file>
+        <file alias="normalsArrow.gsh">shaders/normals/normalsArrow.gsh</file>
+        <file alias="normalsArrow.vert">shaders/normals/normalsArrow.vert</file>
+    </qresource>
+</RCC>
