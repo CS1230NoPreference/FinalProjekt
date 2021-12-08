@@ -180,6 +180,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto Ka = 1.f;
     auto Kd = 1.f;
     auto Ks = 1.f;
+    auto Hardness = 2.;
     auto Lights = std::vector<CS123SceneLightData>{};
 
     Lights.resize(1);
@@ -187,13 +188,14 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     Lights[0].color = glm::vec4{ 1., 1., 1., 1. };
     Lights[0].dir = glm::vec4{ -glm::normalize(glm::vec3{ 1.0, 0.6, 0.5 }), 0 };
 
-    auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks);
-
     using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
     using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
     using ObjectRecordType = std::tuple<DistanceFunctionType, CS123SceneMaterial, IlluminationModelType>;
 
     auto ObjectRecords = std::vector<ObjectRecordType>{};
+    auto DistanceField = DistanceField::Synthesize(ObjectRecords);
+    auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceField, Hardness);
+
     ObjectRecords.resize(2);
 
     std::get<0>(ObjectRecords[0]) = [](auto&& p) { return static_cast<double>(p.y); };
@@ -219,7 +221,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
 
     for (auto& Self = *this; auto y : Range{ height })
         for (auto x : Range{ width }) {
-            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), DistanceField::Synthesize(ObjectRecords));
+            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), DistanceField);
             Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
         }
 
