@@ -1767,3 +1767,71 @@ Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" p
 
 The CXX compiler identification is MSVC, found in "C:/Users/Nick/Desktop/projects-IFeelBloated/glm/out/build/x64-Debug/CMakeFiles/3.20.21032501-MSVC_2/CompilerIdCXX/CMakeCXXCompilerId.obj"
 
+Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+Compiler: C:/Program Files/Microsoft Visual Studio/2022/Preview/VC/Tools/MSVC/14.30.30423/bin/Hostx64/x64/cl.exe 
+Build flags: /DWIN32;/D_WINDOWS;/W3
+Id flags: -c 
+
+The output was:
+0
+Microsoft (R) C/C++ Optimizing Compiler Version 19.30.30423 for x64
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+CMakeCCompilerId.c
+
+
+Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.obj"
+
+The C compiler identification is MSVC, found in "C:/Users/Nick/Desktop/projects-IFeelBloated/glm/out/build/x64-Debug/CMakeFiles/3.20.21032501-MSVC_2/CompilerIdC/CMakeCCompilerId.obj"
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: C:/Program Files/Microsoft Visual Studio/2022/Preview/VC/Tools/MSVC/14.30.30423/bin/Hostx64/x64/cl.exe 
+Build flags: 
+Id flags: -c 
+
+The output was:
+0
+Microsoft (R) C/C++ Optimizing Compiler Version 19.30.30423 for x64
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+CMakeCXXCompilerId.cpp
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.obj"
+
+The CXX compiler identification is MSVC, found in "C:/Users/Nick/Desktop/projects-IFeelBloated/glm/out/build/x64-Debug/CMakeFiles/3.20.21032501-MSVC_2/CompilerIdCXX/CMakeCXXCompilerId.obj"
+
+Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+Compiler: C:/Program Files/Microsoft Visual Studio/2022/Preview/VC/Tools/MSVC/14.30.30423/bin/Hostx64/x64/cl.exe 
+Build flags: /DWIN32;/D_WINDOWS;/W3
+Id flags: -c 
+
+The output was:
+0
+Microsoft (R) C/C++ Optimizing Compiler Version 19.30.30423 for x64
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+CMakeCCompilerId.c
+
+
+Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.obj"
+
+The C compiler identification is MSVC, found in "C:/Users/Nick/Desktop/projects-IFeelBloated/glm/out/build/x64-Debug/CMakeFiles/3.20.21032501-MSVC_2/CompilerIdC/CMakeCCompilerId.obj"
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: C:/Program Files/Microsoft Visual Studio/2022/Preview/VC/Tools/MSVC/14.30.30423/bin/Hostx64/x64/cl.exe 
+Build flags: 
+Id flags: -c 
+
+The output was:
+0
+Microsoft (R) C/C++ Optimizing Compiler Version 19.30.30423 for x64
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+CMakeCXXCompilerId.cpp
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.obj"
+
+The CXX compiler identification is MSVC, found in "C:/Users/Nick/Desktop/projects-IFeelBloated/glm/out/build/x64-Debug/CMakeFiles/3.20.21032501-MSVC_2/CompilerIdCXX/CMakeCXXCompilerId.obj"
+

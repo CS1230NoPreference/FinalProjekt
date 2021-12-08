@@ -22,7 +22,6 @@
 #include <QPainter>
 
 #include "../UniversalContext.hxx"
-#include "../Ray.hxx"
 #include "../RayMarching.hxx"
 #include "../Filter.hxx"
 
@@ -167,18 +166,10 @@ void Canvas2D::renderImage(CS123SceneCameraData* camera, int width, int height) 
 }
 */
 
-
-
-
-
-
-
 void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
-    
-
     this->resize(width, height);
 
-    auto iTime = 42;
+    auto iTime = 4200;
     auto rayOrigin = glm::vec4{ 6.0 * std::sin(iTime * .3), 4.8, 6.0 * std::cos(iTime * .3), 1 };
     auto focalLength = 2.;
 
@@ -186,46 +177,54 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto look = glm::normalize(rayOrigin - target);
     auto up = glm::vec4{ 0, 1, 0, 0 };
 
-    auto cameraForward = -look;
-    auto cameraRight = glm::vec4{ glm::normalize(glm::cross(glm::vec3{ cameraForward }, glm::vec3{ up })), 0 };
-    auto cameraUp = glm::vec4{ glm::normalize(glm::cross(glm::vec3{ cameraRight }, glm::vec3{ cameraForward })), 0 };
+    auto Ka = 1.f;
+    auto Kd = 1.f;
+    auto Ks = 1.f;
+    auto Lights = std::vector<CS123SceneLightData>{};
 
+    Lights.resize(1);
+    Lights[0].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[0].color = glm::vec4{ 1., 1., 1., 1. };
+    Lights[0].dir = glm::vec4{ -glm::normalize(glm::vec3{ 1.0, 0.6, 0.5 }), 0 };
+
+    auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks);
+
+    using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
+    using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
+    using ObjectRecordType = std::tuple<DistanceFunctionType, CS123SceneMaterial, IlluminationModelType>;
+
+    auto ObjectRecords = std::vector<ObjectRecordType>{};
+    ObjectRecords.resize(2);
+
+    std::get<0>(ObjectRecords[0]) = [](auto&& p) { return static_cast<double>(p.y); };
+    std::get<1>(ObjectRecords[0]).cDiffuse = glm::vec4{ 0.5, 0.5, 0.5, 1 };
+    std::get<1>(ObjectRecords[0]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 0.1 };
+    std::get<1>(ObjectRecords[0]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
+    std::get<1>(ObjectRecords[0]).shininess = 32;
+    std::get<2>(ObjectRecords[0]) = GlobalIlluminationModel;
+
+    std::get<0>(ObjectRecords[1]) = [](auto&& p) { 
+        auto center = glm::vec4{ 0, 0.25, 0, 1 };
+        auto radius = 1.5;
+        return glm::length(p - center) - radius;
+    };
+    std::get<1>(ObjectRecords[1]).cDiffuse = glm::vec4{ 1, 0, 0, 1 };
+    std::get<1>(ObjectRecords[1]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 0.1 };
+    std::get<1>(ObjectRecords[1]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
+    std::get<1>(ObjectRecords[1]).shininess = 32;
+    std::get<2>(ObjectRecords[1]) = GlobalIlluminationModel;
+
+    auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height, width);
     auto FloatingPointToUInt8 = [](auto x) { return std::clamp(static_cast<int>(255 * x), 0, 255); };
 
     for (auto& Self = *this; auto y : Range{ height })
         for (auto x : Range{ width }) {
-
-
-            auto uv_x = 2. * ((x + 0.5) / width - 0.5);
-            auto uv_y = 2. * (0.5 - (y + 0.5) / height);
-
-            uv_x *= static_cast<double>(width) / height;
-
-
-            auto rayDirection = glm::normalize(static_cast<float>(uv_x) * cameraRight + static_cast<float>(uv_y) * cameraUp + static_cast<float>(focalLength) * cameraForward);
-
-
-
-            auto AccumulatedIntensity = Ray::March(rayOrigin, rayDirection, TestDrive::Map);
+            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), DistanceField::Synthesize(ObjectRecords));
             Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
         }
 
     this->update();
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void Canvas2D::cancelRender() {
     // TODO: cancel the raytracer (optional)
