@@ -196,32 +196,46 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto DistanceField = DistanceField::Synthesize(ObjectRecords);
     auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceField, Hardness);
 
-    ObjectRecords.resize(2);
+    ObjectRecords.resize(3);
 
     std::get<0>(ObjectRecords[0]) = [](auto&& p) { return static_cast<double>(p.y); };
-    std::get<1>(ObjectRecords[0]).cDiffuse = glm::vec4{ 0.5, 0.5, 0.5, 1 };
-    std::get<1>(ObjectRecords[0]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 0.1 };
+    std::get<1>(ObjectRecords[0]).cDiffuse = glm::vec4{ 0.2, 0.2, 0.6, 1 };
+    std::get<1>(ObjectRecords[0]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
     std::get<1>(ObjectRecords[0]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
+    std::get<1>(ObjectRecords[0]).cReflective = glm::vec4{ 0, 0, 0, 1 };
     std::get<1>(ObjectRecords[0]).shininess = 32;
     std::get<2>(ObjectRecords[0]) = GlobalIlluminationModel;
 
     std::get<0>(ObjectRecords[1]) = [](auto&& p) { 
-        auto center = glm::vec4{ 0, 0.25, 0, 1 };
+        auto center = glm::vec4{ -1, 2.25, 0, 1 };
         auto radius = 1.5;
         return glm::length(p - center) - radius;
     };
-    std::get<1>(ObjectRecords[1]).cDiffuse = glm::vec4{ 1, 0, 0, 1 };
-    std::get<1>(ObjectRecords[1]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 0.1 };
+    std::get<1>(ObjectRecords[1]).cDiffuse = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    std::get<1>(ObjectRecords[1]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
     std::get<1>(ObjectRecords[1]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
+    std::get<1>(ObjectRecords[1]).cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
     std::get<1>(ObjectRecords[1]).shininess = 32;
     std::get<2>(ObjectRecords[1]) = GlobalIlluminationModel;
+
+    std::get<0>(ObjectRecords[2]) = [](auto&& p) {
+        auto center = glm::vec4{ 2, 0.25, 1.5, 1 };
+        auto radius = 1.;
+        return glm::length(p - center) - radius;
+    };
+    std::get<1>(ObjectRecords[2]).cDiffuse = glm::vec4{ 1, 0, 0, 1 };
+    std::get<1>(ObjectRecords[2]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
+    std::get<1>(ObjectRecords[2]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
+    std::get<1>(ObjectRecords[2]).cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    std::get<1>(ObjectRecords[2]).shininess = 8;
+    std::get<2>(ObjectRecords[2]) = GlobalIlluminationModel;
 
     auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height, width);
     auto FloatingPointToUInt8 = [](auto x) { return std::clamp(static_cast<int>(255 * x), 0, 255); };
 
     for (auto& Self = *this; auto y : Range{ height })
         for (auto x : Range{ width }) {
-            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), DistanceField);
+            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, DistanceField, 1);
             Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
         }
 

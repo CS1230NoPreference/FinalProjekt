@@ -20,7 +20,7 @@ namespace DistanceField {
 		return [&](auto&& Position) {
 			using ObjectRecordType = std::decay_t<decltype(*std::begin(ObjectRecords))>;
 			auto NearestObjectRecord = std::tuple{ std::numeric_limits<double>::infinity(), static_cast<ObjectRecordType*>(nullptr) };
-			for (auto& [NearestDistance, _] = NearestObjectRecord; auto & x : ObjectRecords)
+			for (auto& [NearestDistance, _] = NearestObjectRecord; auto& x : ObjectRecords)
 				if (auto& [DistanceFunction, __, ___] = x; DistanceFunction(Position) < NearestDistance)
 					NearestObjectRecord = std::tuple{ DistanceFunction(Position), const_cast<ObjectRecordType*>(&x) };
 			return NearestObjectRecord;
@@ -37,6 +37,7 @@ namespace Ray {
 	auto MaximumMarchingSteps = 1000;
 	auto FarthestMarchingDistance = 50.;
 	auto IntersectionThreshold = 1e-3;
+	auto RecursiveMarchingDepth = 4;
 
 	auto Intersect(auto&& DistanceField, auto&& EyePoint, auto&& RayDirection) {
 		using ObjectRecordPointerType = decltype([&] {
@@ -68,11 +69,18 @@ namespace Ray {
 		}
 		return OccludedIntensity;
 	}
-	auto March(auto&& EyePoint, auto&& RayDirection, auto&& DistanceField) {
+	auto March(auto&& EyePoint, auto&& RayDirection, auto ReflectionIntensity, auto&& DistanceField, auto RecursionDepth)->glm::vec4 {
 		if (auto [TraveledDistance, PointerToObjectRecord] = Intersect(DistanceField, EyePoint, RayDirection); TraveledDistance != NoIntersection) {
 			auto& [DistanceFunction, ObjectMaterial, IlluminationModel] = *PointerToObjectRecord;
 			auto SurfacePosition = EyePoint + static_cast<float>(TraveledDistance) * RayDirection;
-			return IlluminationModel(SurfacePosition, DistanceField::𝛁(DistanceFunction, SurfacePosition), EyePoint, ObjectMaterial);
+			auto SurfaceNormal = DistanceField::𝛁(DistanceFunction, SurfacePosition);
+			auto AccumulatedIntensity = IlluminationModel(SurfacePosition, SurfaceNormal, EyePoint, ObjectMaterial);
+			if (RecursionDepth < RecursiveMarchingDepth) {
+				auto ReflectedRayDirection = Reflect(RayDirection, SurfaceNormal);
+				auto ReflectedLightColor = March(SurfacePosition + SelfIntersectionDisplacement * ReflectedRayDirection, ReflectedRayDirection, ReflectionIntensity, DistanceField, RecursionDepth + 1);
+				AccumulatedIntensity += ReflectionIntensity * glm::vec4{ ReflectedLightColor.x * ObjectMaterial.cReflective.x, ReflectedLightColor.y * ObjectMaterial.cReflective.y, ReflectedLightColor.z * ObjectMaterial.cReflective.z, ReflectedLightColor.w * ObjectMaterial.cReflective.w };
+			}
+			return AccumulatedIntensity;
 		}
 		return glm::vec4{ 0, 0, 0, 0 };
 	}
