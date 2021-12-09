@@ -39,6 +39,13 @@ namespace Ray {
 	auto Reflect(auto&& IncomingDirection, auto&& SurfaceNormal) {
 		return glm::normalize(IncomingDirection + 2 * glm::dot(SurfaceNormal, -IncomingDirection) * SurfaceNormal);
 	}
+	auto Refract(auto&& IncomingDirection, auto&& SurfaceNormal, auto η) {
+		auto cosθ1 = glm::dot(-SurfaceNormal, IncomingDirection);
+		if (auto Discriminant = 1 - η * η * (1 - cosθ1 * cosθ1); Discriminant < 0)
+			return std::tuple{ true, glm::vec4{} };
+		else
+			return std::tuple{ false, glm::normalize(η * IncomingDirection + (η * cosθ1 - std::sqrt(Discriminant)) * SurfaceNormal) };
+	}
 	auto Intersect(auto&& ImplicitFunction, auto&& ObjectTransformation, auto&& EyePoint, auto&& RayDirection) {
 		auto [ObjectSpaceEyePoint, ObjectSpaceRayDirection] = [&] {
 			auto InverseTransformation = glm::inverse(ObjectTransformation);

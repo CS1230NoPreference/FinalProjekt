@@ -180,6 +180,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto Ka = 1.f;
     auto Kd = 1.f;
     auto Ks = 1.f;
+    auto Kt = 1.f;
     auto Hardness = 2.;
     auto Lights = std::vector<CS123SceneLightData>{};
 
@@ -203,19 +204,22 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     std::get<1>(ObjectRecords[0]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
     std::get<1>(ObjectRecords[0]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
     std::get<1>(ObjectRecords[0]).cReflective = glm::vec4{ 0, 0, 0, 1 };
+    std::get<1>(ObjectRecords[0]).cTransparent = glm::vec4{ 0, 0, 0, 1 };
     std::get<1>(ObjectRecords[0]).shininess = 32;
     std::get<2>(ObjectRecords[0]) = GlobalIlluminationModel;
 
-    std::get<0>(ObjectRecords[1]) = [](auto&& p) { 
+    std::get<0>(ObjectRecords[1]) = [](auto&& p) {
         auto center = glm::vec4{ -1, 2.25, 0, 1 };
         auto radius = 1.5;
         return glm::length(p - center) - radius;
     };
-    std::get<1>(ObjectRecords[1]).cDiffuse = glm::vec4{ 0.2, 0.2, 0.2, 1 };
-    std::get<1>(ObjectRecords[1]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
+    std::get<1>(ObjectRecords[1]).cDiffuse = glm::vec4{ 0, 0, 0, 1 };
+    std::get<1>(ObjectRecords[1]).cAmbient = glm::vec4{ 0, 0, 0, 1 };
     std::get<1>(ObjectRecords[1]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
     std::get<1>(ObjectRecords[1]).cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    std::get<1>(ObjectRecords[1]).cTransparent = glm::vec4{ 1, 1, 1, 1 };
     std::get<1>(ObjectRecords[1]).shininess = 32;
+    std::get<1>(ObjectRecords[1]).ior = 3;
     std::get<2>(ObjectRecords[1]) = GlobalIlluminationModel;
 
     std::get<0>(ObjectRecords[2]) = [](auto&& p) {
@@ -227,6 +231,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     std::get<1>(ObjectRecords[2]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
     std::get<1>(ObjectRecords[2]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
     std::get<1>(ObjectRecords[2]).cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    std::get<1>(ObjectRecords[2]).cTransparent = glm::vec4{ 0, 0, 0, 1 };
     std::get<1>(ObjectRecords[2]).shininess = 8;
     std::get<2>(ObjectRecords[2]) = GlobalIlluminationModel;
 
@@ -235,7 +240,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
 
     for (auto& Self = *this; auto y : Range{ height })
         for (auto x : Range{ width }) {
-            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, DistanceField, 1);
+            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, 1);
             Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
         }
 

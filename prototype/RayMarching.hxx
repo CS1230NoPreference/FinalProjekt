@@ -21,7 +21,7 @@ namespace DistanceField {
 			using ObjectRecordType = std::decay_t<decltype(*std::begin(ObjectRecords))>;
 			auto NearestObjectRecord = std::tuple{ std::numeric_limits<double>::infinity(), static_cast<ObjectRecordType*>(nullptr) };
 			for (auto& [NearestDistance, _] = NearestObjectRecord; auto& x : ObjectRecords)
-				if (auto& [DistanceFunction, __, ___] = x; DistanceFunction(Position) < NearestDistance)
+				if (auto& [DistanceFunction, __, ___] = x; std::abs(DistanceFunction(Position)) < std::abs(NearestDistance))
 					NearestObjectRecord = std::tuple{ DistanceFunction(Position), const_cast<ObjectRecordType*>(&x) };
 			return NearestObjectRecord;
 		};
@@ -36,7 +36,7 @@ namespace DistanceField {
 namespace Ray {
 	auto MaximumMarchingSteps = 1000;
 	auto FarthestMarchingDistance = 50.;
-	auto IntersectionThreshold = 1e-3;
+	auto IntersectionThreshold = 1e-4;
 	auto RecursiveMarchingDepth = 4;
 
 	auto Intersect(auto&& DistanceField, auto&& EyePoint, auto&& RayDirection) {
@@ -46,8 +46,8 @@ namespace Ray {
 		}());
 		for (auto TraveledDistance = 1e-3; auto _ : Range{ MaximumMarchingSteps }) {
 			auto [UnboundingRadius, PointerToObjectRecord] = DistanceField(EyePoint + static_cast<float>(TraveledDistance) * RayDirection);
-			TraveledDistance += UnboundingRadius;
-			if (UnboundingRadius < IntersectionThreshold)
+			TraveledDistance += std::abs(UnboundingRadius);
+			if (0 <= UnboundingRadius && UnboundingRadius < IntersectionThreshold)
 				return std::tuple{ TraveledDistance, PointerToObjectRecord };
 			if (TraveledDistance > FarthestMarchingDistance)
 				return std::tuple{ NoIntersection, static_cast<ObjectRecordPointerType>(nullptr) };
@@ -69,16 +69,26 @@ namespace Ray {
 		}
 		return OccludedIntensity;
 	}
-	auto March(auto&& EyePoint, auto&& RayDirection, auto ReflectionIntensity, auto&& DistanceField, auto RecursionDepth)->glm::vec4 {
+	auto March(auto&& EyePoint, auto&& RayDirection, auto ReflectionIntensity, auto RefractionIntensity, auto&& DistanceField, auto RecursionDepth)->glm::vec4 {
 		if (auto [TraveledDistance, PointerToObjectRecord] = Intersect(DistanceField, EyePoint, RayDirection); TraveledDistance != NoIntersection) {
 			auto& [DistanceFunction, ObjectMaterial, IlluminationModel] = *PointerToObjectRecord;
 			auto SurfacePosition = EyePoint + static_cast<float>(TraveledDistance) * RayDirection;
 			auto SurfaceNormal = DistanceField::𝛁(DistanceFunction, SurfacePosition);
 			auto AccumulatedIntensity = IlluminationModel(SurfacePosition, SurfaceNormal, EyePoint, ObjectMaterial);
 			if (RecursionDepth < RecursiveMarchingDepth) {
+				auto [RefractionNormal, η] = [&] {
+					if (glm::dot(RayDirection, SurfaceNormal) > 0)
+						return std::tuple{ -SurfaceNormal, ObjectMaterial.ior };
+					else
+						return std::tuple{ SurfaceNormal, 1 / ObjectMaterial.ior };
+				}();
 				auto ReflectedRayDirection = Reflect(RayDirection, SurfaceNormal);
-				auto ReflectedLightColor = March(SurfacePosition + SelfIntersectionDisplacement * ReflectedRayDirection, ReflectedRayDirection, ReflectionIntensity, DistanceField, RecursionDepth + 1);
+				auto ReflectedLightColor = March(SurfacePosition + SelfIntersectionDisplacement * ReflectedRayDirection, ReflectedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, RecursionDepth + 1);
 				AccumulatedIntensity += ReflectionIntensity * glm::vec4{ ReflectedLightColor.x * ObjectMaterial.cReflective.x, ReflectedLightColor.y * ObjectMaterial.cReflective.y, ReflectedLightColor.z * ObjectMaterial.cReflective.z, ReflectedLightColor.w * ObjectMaterial.cReflective.w };
+				if (auto [TotalInternalReflection, RefractedRayDirection] = Refract(RayDirection, RefractionNormal, η); TotalInternalReflection == false) {
+					auto RefractedLightColor = March(SurfacePosition - SelfIntersectionDisplacement * RefractionNormal, RefractedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, RecursionDepth + 1);
+					AccumulatedIntensity += RefractionIntensity * glm::vec4{ RefractedLightColor.x * ObjectMaterial.cTransparent.x, RefractedLightColor.y * ObjectMaterial.cTransparent.y, RefractedLightColor.z * ObjectMaterial.cTransparent.z, RefractedLightColor.w * ObjectMaterial.cTransparent.w };
+				}
 			}
 			return AccumulatedIntensity;
 		}
