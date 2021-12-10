@@ -55,6 +55,7 @@ References:
     Fractals](http://blog.hvidtfeldts.net/index.php/2011/09/distance-estimated-3d-fractals-v-the-mandelbulb-different-de-approximations/)
 -   [Shadertoy Mandelbulb #1](https://www.shadertoy.com/view/WsySDR)
 -   [Shadertoy Mandelbulb #2](http://shadertoy.com/view/Mdy3Dw)
+-   https://www.shadertoy.com/view/NtfXWn
 
 ### Fractal Terrains
 
