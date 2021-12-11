@@ -272,12 +272,17 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     std::get<1>(ObjectRecords[3]).shininess = 1;
     std::get<2>(ObjectRecords[3]) = GlobalIlluminationModel;
 
+    auto Interrupt = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+        if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[3])
+            ObjectMaterial.cDiffuse = SurfaceNormal;
+    };
+
     auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height, width);
     auto FloatingPointToUInt8 = [](auto x) { return std::clamp(static_cast<int>(255 * x), 0, 255); };
 
     for (auto& Self = *this; auto y : Range{ height })
         for (auto x : Range{ width }) {
-            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, 1);
+            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, Interrupt, 1);
             Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
         }
 

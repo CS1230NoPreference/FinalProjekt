@@ -69,11 +69,12 @@ namespace Ray {
 		}
 		return OccludedIntensity;
 	}
-	auto March(auto&& EyePoint, auto&& RayDirection, auto ReflectionIntensity, auto RefractionIntensity, auto&& DistanceField, auto RecursionDepth)->glm::vec4 {
+	auto March(auto&& EyePoint, auto&& RayDirection, auto ReflectionIntensity, auto RefractionIntensity, auto&& DistanceField, auto&& Interrupt, auto RecursionDepth)->glm::vec4 {
 		if (auto [TraveledDistance, PointerToObjectRecord] = Intersect(DistanceField, EyePoint, RayDirection); TraveledDistance != NoIntersection) {
 			auto& [DistanceFunction, ObjectMaterial, IlluminationModel] = *PointerToObjectRecord;
 			auto SurfacePosition = EyePoint + static_cast<float>(TraveledDistance) * RayDirection;
 			auto SurfaceNormal = DistanceField::𝛁(DistanceFunction, SurfacePosition);
+			Interrupt(SurfacePosition, SurfaceNormal, *PointerToObjectRecord);
 			auto AccumulatedIntensity = IlluminationModel(SurfacePosition, SurfaceNormal, EyePoint, ObjectMaterial);
 			if (RecursionDepth < RecursiveMarchingDepth) {
 				auto [RefractionNormal, η] = [&] {
@@ -83,10 +84,10 @@ namespace Ray {
 						return std::tuple{ SurfaceNormal, 1 / ObjectMaterial.ior };
 				}();
 				auto ReflectedRayDirection = Reflect(RayDirection, SurfaceNormal);
-				auto ReflectedLightColor = March(SurfacePosition + SelfIntersectionDisplacement * ReflectedRayDirection, ReflectedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, RecursionDepth + 1);
+				auto ReflectedLightColor = March(SurfacePosition + SelfIntersectionDisplacement * ReflectedRayDirection, ReflectedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, Interrupt, RecursionDepth + 1);
 				AccumulatedIntensity += ReflectionIntensity * glm::vec4{ ReflectedLightColor.x * ObjectMaterial.cReflective.x, ReflectedLightColor.y * ObjectMaterial.cReflective.y, ReflectedLightColor.z * ObjectMaterial.cReflective.z, ReflectedLightColor.w * ObjectMaterial.cReflective.w };
 				if (auto [TotalInternalReflection, RefractedRayDirection] = Refract(RayDirection, RefractionNormal, η); TotalInternalReflection == false) {
-					auto RefractedLightColor = March(SurfacePosition - SelfIntersectionDisplacement * RefractionNormal, RefractedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, RecursionDepth + 1);
+					auto RefractedLightColor = March(SurfacePosition - SelfIntersectionDisplacement * RefractionNormal, RefractedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, Interrupt, RecursionDepth + 1);
 					AccumulatedIntensity += RefractionIntensity * glm::vec4{ RefractedLightColor.x * ObjectMaterial.cTransparent.x, RefractedLightColor.y * ObjectMaterial.cTransparent.y, RefractedLightColor.z * ObjectMaterial.cTransparent.z, RefractedLightColor.w * ObjectMaterial.cTransparent.w };
 				}
 			}
