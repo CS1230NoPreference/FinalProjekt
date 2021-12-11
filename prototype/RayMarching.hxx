@@ -35,8 +35,8 @@ namespace DistanceField {
 
 namespace Ray {
 	auto MaximumMarchingSteps = 1000;
-	auto FarthestMarchingDistance = 50.;
-	auto IntersectionThreshold = 1e-4;
+	auto FarthestMarchingDistance = 100.;
+	auto IntersectionThreshold = 1e-3;
 	auto RecursiveMarchingDepth = 4;
 
 	auto Intersect(auto&& DistanceField, auto&& EyePoint, auto&& RayDirection) {

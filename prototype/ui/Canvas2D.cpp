@@ -197,7 +197,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto DistanceField = DistanceField::Synthesize(ObjectRecords);
     auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceField, Hardness);
 
-    ObjectRecords.resize(3);
+    ObjectRecords.resize(4);
 
     std::get<0>(ObjectRecords[0]) = [](auto&& p) { return static_cast<double>(p.y); };
     std::get<1>(ObjectRecords[0]).cDiffuse = glm::vec4{ 0.2, 0.2, 0.6, 1 };
@@ -228,12 +228,49 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
         return glm::length(p - center) - radius;
     };
     std::get<1>(ObjectRecords[2]).cDiffuse = glm::vec4{ 1, 0, 0, 1 };
-    std::get<1>(ObjectRecords[2]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
+    std::get<1>(ObjectRecords[2]).cAmbient = glm::vec4{ 0, 0, 0, 1 };
     std::get<1>(ObjectRecords[2]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
     std::get<1>(ObjectRecords[2]).cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
     std::get<1>(ObjectRecords[2]).cTransparent = glm::vec4{ 0, 0, 0, 1 };
     std::get<1>(ObjectRecords[2]).shininess = 8;
     std::get<2>(ObjectRecords[2]) = GlobalIlluminationModel;
+
+    std::get<0>(ObjectRecords[3]) = [](auto&& p) {
+        auto sdMandelbulb = [](auto&& pos) {
+            auto z = glm::vec3{ pos };
+            auto dr = 1.0;
+            auto r = 0.0;
+            for (auto _ : Range{ 5 }) {
+                r = glm::length(z);
+                if (r > 4.) break;
+                // convert to polar coordinates
+                auto theta = std::acos(z.z / r);
+                auto phi = std::atan2(z.y, z.x);
+                dr = std::pow(r, 8. - 1) * 8. * dr + 1;
+
+                // scale and rotate the point
+                auto zr = static_cast<float>(std::pow(r, 8.));
+                theta = theta * 8.;
+                phi = phi * 8.;
+
+                // convert back to cartesian coordinates
+                z = zr * glm::vec3{
+                    std::sin(theta) * std::cos(phi),
+                    std::sin(phi) * std::sin(theta),
+                    std::cos(theta) };
+                z += glm::vec3{ pos };
+            }
+            return 0.5 * std::log(r) * r / dr;
+        };
+        return sdMandelbulb(p - glm::vec4{ -1,2,-3,0 });
+    };
+    std::get<1>(ObjectRecords[3]).cDiffuse = glm::vec4{ 1, 1, 1, 1 };
+    std::get<1>(ObjectRecords[3]).cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    std::get<1>(ObjectRecords[3]).cSpecular = glm::vec4{ 0, 0, 0, 1 };
+    std::get<1>(ObjectRecords[3]).cReflective = glm::vec4{ 0., 0., 0., 1 };
+    std::get<1>(ObjectRecords[3]).cTransparent = glm::vec4{ 0, 0, 0, 1 };
+    std::get<1>(ObjectRecords[3]).shininess = 1;
+    std::get<2>(ObjectRecords[3]) = GlobalIlluminationModel;
 
     auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height, width);
     auto FloatingPointToUInt8 = [](auto x) { return std::clamp(static_cast<int>(255 * x), 0, 255); };
