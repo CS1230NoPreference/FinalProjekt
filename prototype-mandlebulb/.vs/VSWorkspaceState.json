@@ -1,0 +1,15 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\camera",
+    "\\gl",
+    "\\gl\\shaders",
+    "\\lib",
+    "\\scenegraph",
+    "\\shaders",
+    "\\shapes",
+    "\\ui"
+  ],
+  "SelectedNode": "\\RayMarching.hxx",
+  "PreviewInSolutionExplorer": true
+}
