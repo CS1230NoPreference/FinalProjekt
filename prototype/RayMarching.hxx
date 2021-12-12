@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "Ray.hxx"
 
+#include <QThreadPool>
+
 namespace ViewPlane {
 	auto ConfigureRayCaster(auto&& LookVector, auto&& UpVector, auto FocalLength, auto Height, auto Width) {
 		auto zAxis = -glm::vec3{ LookVector };
@@ -47,7 +49,7 @@ namespace Ray {
 		for (auto TraveledDistance = 1e-3; auto _ : Range{ MaximumMarchingSteps }) {
 			auto [UnboundingRadius, PointerToObjectRecord] = DistanceField(EyePoint + static_cast<float>(TraveledDistance) * RayDirection);
 			TraveledDistance += std::abs(UnboundingRadius);
-			if (0 <= UnboundingRadius && UnboundingRadius < IntersectionThreshold)
+                        if (0 <= UnboundingRadius && UnboundingRadius < IntersectionThreshold)
 				return std::tuple{ TraveledDistance, PointerToObjectRecord };
 			if (TraveledDistance > FarthestMarchingDistance)
 				return std::tuple{ NoIntersection, static_cast<ObjectRecordPointerType>(nullptr) };

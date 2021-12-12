@@ -90,7 +90,7 @@ bool SupportCanvas2D::loadImage(const QString &file) {
 
         // Show the new image.
         resize(temp->width(), temp->height());
-        memcpy(data(), temp->bits(), temp->sizeInBytes());
+        memcpy(data(), temp->bits(), temp->byteCount());
         update();
 
         // Remember the filename so we can revert to it

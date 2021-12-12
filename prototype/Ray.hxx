@@ -96,8 +96,10 @@ namespace Texture {
 				this->Data.resize(Height * Width);
 				for (auto y : Range{ this->Height })
 					for (auto x : Range{ this->Width }) {
-						auto PixelData = ReferenceImage.pixelColor(x, y);
-						Data[y * Width + x] = glm::vec4{ PixelData.red() / 255., PixelData.green() / 255., PixelData.blue() / 255., PixelData.alpha() / 255. };
+//                                                auto PixelData = ReferenceImage.pixelColor(x, y);
+//						Data[y * Width + x] = glm::vec4{ PixelData.red() / 255., PixelData.green() / 255., PixelData.blue() / 255., PixelData.alpha() / 255. };
+                                            auto PixelData = ReferenceImage.pixel(x, y);
+                                            Data[y * Width + x] = glm::vec4{qRed(PixelData) / 255., qGreen(PixelData) / 255., qBlue(PixelData) / 255., qAlpha(PixelData) / 255.};
 					}
 			}
 		}

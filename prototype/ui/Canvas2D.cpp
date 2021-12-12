@@ -20,6 +20,10 @@
 
 #include <QCoreApplication>
 #include <QPainter>
+#include <QtConcurrent/qtconcurrentrun.h>
+#include <ctime>
+#include <chrono>
+#include <thread>
 
 #include "../UniversalContext.hxx"
 #include "../RayMarching.hxx"
@@ -280,11 +284,22 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height, width);
     auto FloatingPointToUInt8 = [](auto x) { return std::clamp(static_cast<int>(255 * x), 0, 255); };
 
+//    auto start = std::chrono::steady_clock::now();
+
     for (auto& Self = *this; auto y : Range{ height })
-        for (auto x : Range{ width }) {
-            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, Interrupt, 1);
-            Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
-        }
+      for (auto x : Range{ width }) {
+//                auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, Interrupt, 1);
+                QFuture<void> test = QtConcurrent::run([=, &Self]() {
+                    auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, Interrupt, 1);
+                    Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
+                });
+    //            Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
+    }
+
+//    auto end = std::chrono::steady_clock::now();
+//    std::chrono::duration<double> elapsed_seconds = end - start;
+//    std::cout << "Multithreaded: " << elapsed_seconds.count() << "s" << std::endl;
+
 
     this->update();
 }
