@@ -189,9 +189,15 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     Lights[0].color = glm::vec4{ 1., 1., 1., 1. };
     Lights[0].dir = glm::vec4{ -glm::normalize(glm::vec3{ 1.0, 0.6, 0.5 }), 0 };
 
+    auto MandelbulbLights = Lights;
+    MandelbulbLights.resize(2);
+    MandelbulbLights[1].type = LightType::LIGHT_DIRECTIONAL;
+    MandelbulbLights[1].color = glm::vec4{ 0.25, 0.25, 0.25, 1. };
+    MandelbulbLights[1].dir = -look;
+
     using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
     using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
-    using ObjectRecordType = std::tuple<DistanceFunctionType, CS123SceneMaterial, IlluminationModelType>;
+    using ObjectRecordType = struct { DistanceFunctionType DistanceFunction; CS123SceneMaterial Material; IlluminationModelType IlluminationModel; };
 
     auto ObjectRecords = std::vector<ObjectRecordType>{};
     auto DistanceField = DistanceField::Synthesize(ObjectRecords);
@@ -199,43 +205,39 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
 
     ObjectRecords.resize(4);
 
-    std::get<0>(ObjectRecords[0]) = [](auto&& p) { return static_cast<double>(p.y); };
-    std::get<1>(ObjectRecords[0]).cDiffuse = glm::vec4{ 0.2, 0.2, 0.6, 1 };
-    std::get<1>(ObjectRecords[0]).cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
-    std::get<1>(ObjectRecords[0]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
-    std::get<1>(ObjectRecords[0]).cReflective = glm::vec4{ 0, 0, 0, 1 };
-    std::get<1>(ObjectRecords[0]).cTransparent = glm::vec4{ 0, 0, 0, 1 };
-    std::get<1>(ObjectRecords[0]).shininess = 32;
-    std::get<2>(ObjectRecords[0]) = GlobalIlluminationModel;
-
-    std::get<0>(ObjectRecords[1]) = [](auto&& p) {
-        auto center = glm::vec4{ -1, 2.25, 0, 1 };
-        auto radius = 1.5;
-        return glm::length(p - center) - radius;
+    auto CreateSphere = [](auto&& Center, auto Radius) {
+        return [=, Center = Forward(Center)](auto&& Position) { return glm::length(Position - Center) - Radius; };
     };
-    std::get<1>(ObjectRecords[1]).cDiffuse = glm::vec4{ 0, 0, 0, 1 };
-    std::get<1>(ObjectRecords[1]).cAmbient = glm::vec4{ 0, 0, 0, 1 };
-    std::get<1>(ObjectRecords[1]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
-    std::get<1>(ObjectRecords[1]).cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
-    std::get<1>(ObjectRecords[1]).cTransparent = glm::vec4{ 1, 1, 1, 1 };
-    std::get<1>(ObjectRecords[1]).shininess = 32;
-    std::get<1>(ObjectRecords[1]).ior = 3;
-    std::get<2>(ObjectRecords[1]) = GlobalIlluminationModel;
 
-    std::get<0>(ObjectRecords[2]) = [](auto&& p) {
-        auto center = glm::vec4{ 2, 0.25, 1.5, 1 };
-        auto radius = 1.;
-        return glm::length(p - center) - radius;
-    };
-    std::get<1>(ObjectRecords[2]).cDiffuse = glm::vec4{ 1, 0, 0, 1 };
-    std::get<1>(ObjectRecords[2]).cAmbient = glm::vec4{ 0, 0, 0, 1 };
-    std::get<1>(ObjectRecords[2]).cSpecular = glm::vec4{ 1, 1, 1, 1 };
-    std::get<1>(ObjectRecords[2]).cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
-    std::get<1>(ObjectRecords[2]).cTransparent = glm::vec4{ 0, 0, 0, 1 };
-    std::get<1>(ObjectRecords[2]).shininess = 8;
-    std::get<2>(ObjectRecords[2]) = GlobalIlluminationModel;
+    ObjectRecords[0].DistanceFunction = [](auto&& p) { return static_cast<double>(p.y); };
+    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.2, 0.2, 0.6, 1 };
+    ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
+    ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    ObjectRecords[0].Material.shininess = 32;
+    ObjectRecords[0].IlluminationModel = GlobalIlluminationModel;
 
-    std::get<0>(ObjectRecords[3]) = [](auto&& p) {
+    ObjectRecords[1].DistanceFunction = CreateSphere(glm::vec4{ -1, 2.25, 0, 1 }, 1.5);
+    ObjectRecords[1].Material.cDiffuse = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[1].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[1].Material.cSpecular = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[1].Material.cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    ObjectRecords[1].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[1].Material.IsReflective = true;
+    ObjectRecords[1].Material.IsTransparent = true;
+    ObjectRecords[1].Material.shininess = 32;
+    ObjectRecords[1].Material.ior = 3;
+    ObjectRecords[1].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[2].DistanceFunction = CreateSphere(glm::vec4{ 2, 0.25, 1.5, 1 }, 1.);
+    ObjectRecords[2].Material.cDiffuse = glm::vec4{ 1, 0, 0, 1 };
+    ObjectRecords[2].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[2].Material.cSpecular = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[2].Material.cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    ObjectRecords[2].Material.IsReflective = true;
+    ObjectRecords[2].Material.shininess = 8;
+    ObjectRecords[2].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[3].DistanceFunction = [](auto&& p) {
         auto sdMandelbulb = [](auto&& pos) {
             auto z = glm::vec3{ pos };
             auto dr = 1.0;
@@ -264,13 +266,11 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
         };
         return sdMandelbulb(p - glm::vec4{ -1,2,-3,0 });
     };
-    std::get<1>(ObjectRecords[3]).cDiffuse = glm::vec4{ 1, 1, 1, 1 };
-    std::get<1>(ObjectRecords[3]).cAmbient = glm::vec4{ 0, 0, 0, 1 };
-    std::get<1>(ObjectRecords[3]).cSpecular = glm::vec4{ 0, 0, 0, 1 };
-    std::get<1>(ObjectRecords[3]).cReflective = glm::vec4{ 0., 0., 0., 1 };
-    std::get<1>(ObjectRecords[3]).cTransparent = glm::vec4{ 0, 0, 0, 1 };
-    std::get<1>(ObjectRecords[3]).shininess = 1;
-    std::get<2>(ObjectRecords[3]) = GlobalIlluminationModel;
+    ObjectRecords[3].Material.cDiffuse = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[3].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[3].Material.cSpecular = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[3].Material.shininess = 1;
+    ObjectRecords[3].IlluminationModel = Illuminations::ConfigureIlluminationModel(MandelbulbLights, Ka, Kd, Ks, DistanceField, Hardness);
 
     auto Interrupt = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
         if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[3])

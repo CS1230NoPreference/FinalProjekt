@@ -77,18 +77,22 @@ namespace Ray {
 			Interrupt(SurfacePosition, SurfaceNormal, *PointerToObjectRecord);
 			auto AccumulatedIntensity = IlluminationModel(SurfacePosition, SurfaceNormal, EyePoint, ObjectMaterial);
 			if (RecursionDepth < RecursiveMarchingDepth) {
-				auto [RefractionNormal, η] = [&] {
-					if (glm::dot(RayDirection, SurfaceNormal) > 0)
-						return std::tuple{ -SurfaceNormal, ObjectMaterial.ior };
-					else
-						return std::tuple{ SurfaceNormal, 1 / ObjectMaterial.ior };
-				}();
-				auto ReflectedRayDirection = Reflect(RayDirection, SurfaceNormal);
-				auto ReflectedLightColor = March(SurfacePosition + SelfIntersectionDisplacement * ReflectedRayDirection, ReflectedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, Interrupt, RecursionDepth + 1);
-				AccumulatedIntensity += ReflectionIntensity * glm::vec4{ ReflectedLightColor.x * ObjectMaterial.cReflective.x, ReflectedLightColor.y * ObjectMaterial.cReflective.y, ReflectedLightColor.z * ObjectMaterial.cReflective.z, ReflectedLightColor.w * ObjectMaterial.cReflective.w };
-				if (auto [TotalInternalReflection, RefractedRayDirection] = Refract(RayDirection, RefractionNormal, η); TotalInternalReflection == false) {
-					auto RefractedLightColor = March(SurfacePosition - SelfIntersectionDisplacement * RefractionNormal, RefractedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, Interrupt, RecursionDepth + 1);
-					AccumulatedIntensity += RefractionIntensity * glm::vec4{ RefractedLightColor.x * ObjectMaterial.cTransparent.x, RefractedLightColor.y * ObjectMaterial.cTransparent.y, RefractedLightColor.z * ObjectMaterial.cTransparent.z, RefractedLightColor.w * ObjectMaterial.cTransparent.w };
+				if (ObjectMaterial.IsReflective) {
+					auto ReflectedRayDirection = Reflect(RayDirection, SurfaceNormal);
+					auto ReflectedLightColor = March(SurfacePosition + SelfIntersectionDisplacement * ReflectedRayDirection, ReflectedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, Interrupt, RecursionDepth + 1);
+					AccumulatedIntensity += ReflectionIntensity * glm::vec4{ ReflectedLightColor.x * ObjectMaterial.cReflective.x, ReflectedLightColor.y * ObjectMaterial.cReflective.y, ReflectedLightColor.z * ObjectMaterial.cReflective.z, ReflectedLightColor.w * ObjectMaterial.cReflective.w };
+				}
+				if (ObjectMaterial.IsTransparent) {
+					auto [RefractionNormal, η] = [&] {
+						if (glm::dot(RayDirection, SurfaceNormal) > 0)
+							return std::tuple{ -SurfaceNormal, ObjectMaterial.ior };
+						else
+							return std::tuple{ SurfaceNormal, 1 / ObjectMaterial.ior };
+					}();
+					if (auto [TotalInternalReflection, RefractedRayDirection] = Refract(RayDirection, RefractionNormal, η); TotalInternalReflection == false) {
+						auto RefractedLightColor = March(SurfacePosition - SelfIntersectionDisplacement * RefractionNormal, RefractedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, Interrupt, RecursionDepth + 1);
+						AccumulatedIntensity += RefractionIntensity * glm::vec4{ RefractedLightColor.x * ObjectMaterial.cTransparent.x, RefractedLightColor.y * ObjectMaterial.cTransparent.y, RefractedLightColor.z * ObjectMaterial.cTransparent.z, RefractedLightColor.w * ObjectMaterial.cTransparent.w };
+					}
 				}
 			}
 			return AccumulatedIntensity;

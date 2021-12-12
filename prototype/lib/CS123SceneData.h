@@ -118,6 +118,9 @@ struct CS123SceneMaterial {
 
    float ior; // index of refraction
 
+   bool IsReflective = false;
+   bool IsTransparent = false;
+
    void clear() {
        cAmbient.r = 0.0f; cAmbient.g = 0.0f; cAmbient.b = 0.0f; cAmbient.a = 0.0f;
        cDiffuse.r = 0.0f; cDiffuse.g = 0.0f; cDiffuse.b = 0.0f; cDiffuse.a = 0.0f;
