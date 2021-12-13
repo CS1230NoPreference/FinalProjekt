@@ -169,6 +169,8 @@ void Canvas2D::renderImage(CS123SceneCameraData* camera, int width, int height) 
 void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     this->resize(width, height);
 
+    auto Supersampling = 4;
+
     auto iTime = 4200;
     auto rayOrigin = glm::vec4{ 6.0 * std::sin(iTime * .3), 4.8, 6.0 * std::cos(iTime * .3), 1 };
     auto focalLength = 2.;
@@ -277,14 +279,18 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
             ObjectMaterial.cDiffuse = SurfaceNormal;
     };
 
-    auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height, width);
-    auto FloatingPointToUInt8 = [](auto x) { return std::clamp(static_cast<int>(255 * x), 0, 255); };
+    auto SupersampledRender = Filter::Frame{ height * Supersampling, width * Supersampling, 3 };
 
-    for (auto& Self = *this; auto y : Range{ height })
-        for (auto x : Range{ width }) {
+    for (auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height * Supersampling, width * Supersampling); auto y : Range{ height * Supersampling })
+        for (auto x : Range{ width * Supersampling }) {
             auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, InterruptHandler, 1);
-            Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
+            SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+            SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+            SupersampledRender[2][y][x] = AccumulatedIntensity.z;
         }
+
+    auto ResampledRender = Filter::Transpose(Filter::HorizontalScale(Filter::Transpose(Filter::HorizontalScale(SupersampledRender.Finalize(), 1. / Supersampling)), 1. / Supersampling));
+    Filter::DisplayPort::Transfer(*this, ResampledRender);
 
     this->update();
 }

@@ -142,9 +142,7 @@ namespace Filter {
 		Frame(std::integral auto Height, std::integral auto Width, Countable auto PlaneCount) {
 			this->PlaneCount = PlaneCount;
 			this->Storage.resize(static_cast<std::size_t>(PlaneCount) * Height * Width);
-
 			this->RefreshPlanes(Height, Width);
-
 		}
 
 	public:
