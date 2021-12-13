@@ -279,44 +279,66 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height, width);
     auto FloatingPointToUInt8 = [](auto x) { return std::clamp(static_cast<int>(255 * x), 0, 255); };
 
+
+    // Maximize thread usage
+    QThreadPool::globalInstance()->setMaxThreadCount(std::thread::hardware_concurrency());
+
+    //// Performance metrics logging; should disable later
     std::cout << "Number of threads available: " << std::thread::hardware_concurrency() << std::endl;
     std::cout << "Number of threads being used: " << QThreadPool::globalInstance()->maxThreadCount() << std::endl;
     auto start = std::chrono::steady_clock::now();
     std::string ThreadType;
-    QFuture<void> wait;
-    for (auto& Self = *this; auto y : Range{ height }) {
-      for (auto x : Range{ width }) {
-        if (settings.useMultiThreading) {
-            ThreadType = "Multithreaded: ";
-            QtConcurrent::run([=, &Self]() {
-                auto ORCopy = ObjectRecords;
-                auto DistanceFieldCopy = DistanceField::Synthesize(ORCopy);
-                auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceFieldCopy, Hardness);
-                for (auto i : Range{ ORCopy.size() })
+
+    // Reference to Canvas2D
+    auto& Self = *this;
+    if (settings.useMultiThreading) {
+        ThreadType = "Multithreaded: ";
+        // Helper function to create a thread
+        auto CreateThread = [=, &Self](auto start, auto end, auto height) {
+            auto ORCopy = ObjectRecords;
+            auto DFCopy = DistanceField::Synthesize(ORCopy);
+            auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
+            for (auto i : Range{ ORCopy.size() })
                 ORCopy[i].IlluminationModel = GIMCopy;
-                ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(MandelbulbLights, Ka, Kd, Ks, DistanceFieldCopy, Hardness);
-                auto Interrupt = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+            ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(MandelbulbLights, Ka, Kd, Ks, DFCopy, Hardness);
+            auto Interrupt = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
                 if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[ORCopy.size() - 1])
                     ObjectMaterial.cDiffuse = SurfaceNormal;
-                };
-                auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceFieldCopy, Interrupt, 1);
-                Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
+            };
+            for (auto y : Range{ height })
+                for (auto x = start; x < end; x++) {
+                    auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DFCopy, Interrupt, 1);
+                    Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
+                }
+        };
+        int MaxThreads = QThreadPool::globalInstance()->maxThreadCount();
+        int ThreadWidth = width / MaxThreads;
+        for (int i = 0; i < MaxThreads; i++) {
+            QtConcurrent::run([=]() {
+                auto start = i * ThreadWidth, end = (i + 1) * ThreadWidth;
+                if (i == MaxThreads - 1)
+                    end += width % MaxThreads;
+//                printf("i: %d\twidth: %d\tstart: %d\tend: %d\n", i, width, start, end);
+                CreateThread(start, end, height);
             });
-        } else {
-                ThreadType = "Singlethreaded: ";
-                auto Interrupt = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
-                if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[3])
-                    ObjectMaterial.cDiffuse = SurfaceNormal;
-                };
+        }
+        // wait for threads to finish
+        QThreadPool::globalInstance()->waitForDone();
+    } else {
+        ThreadType = "Singlethreaded: ";
+        auto Interrupt = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+        if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[3])
+            ObjectMaterial.cDiffuse = SurfaceNormal;
+        };
+        for (auto y : Range{ height }) {
+            for (auto x : Range{ width }) {
                 auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, Interrupt, 1);
                 Self[y][x] = RGBA{ FloatingPointToUInt8(Self[y][x].r / 255. + AccumulatedIntensity.x), FloatingPointToUInt8(Self[y][x].g / 255. + AccumulatedIntensity.y), FloatingPointToUInt8(Self[y][x].b / 255. + AccumulatedIntensity.z), FloatingPointToUInt8(Self[y][x].a / 255. + AccumulatedIntensity.w) };
+            }
         }
     }
-    std::cout << "Active threads: " << QThreadPool::globalInstance()->activeThreadCount() << std::endl;
-  }
 
-//    if (settings.useMultiThreading)
-//            wait.waitForFinished();
+    std::cout << "Done rendering." << std::endl;
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
