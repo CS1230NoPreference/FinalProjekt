@@ -74,7 +74,7 @@ namespace Ray {
 	auto March(auto&& EyePoint, auto&& RayDirection, auto ReflectionIntensity, auto RefractionIntensity, auto&& DistanceField, auto&& Interrupt, auto RecursionDepth)->glm::vec4 {
 		if (auto [TraveledDistance, PointerToObjectRecord] = Intersect(DistanceField, EyePoint, RayDirection); TraveledDistance != NoIntersection) {
 			auto& [DistanceFunction, ObjectMaterial, IlluminationModel] = *PointerToObjectRecord;
-			auto SurfacePosition = EyePoint + static_cast<float>(TraveledDistance) * RayDirection;
+                        auto SurfacePosition = EyePoint + static_cast<float>(TraveledDistance) * RayDirection;
 			auto SurfaceNormal = DistanceField::𝛁(DistanceFunction, SurfacePosition);
 			Interrupt(SurfacePosition, SurfaceNormal, *PointerToObjectRecord);
 			auto AccumulatedIntensity = IlluminationModel(SurfacePosition, SurfaceNormal, EyePoint, ObjectMaterial);
