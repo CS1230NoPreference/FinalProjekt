@@ -13,6 +13,7 @@
 #include <math.h>
 #include <iostream>
 #include <memory>
+#include <thread>
 #include <unistd.h>
 #include "Canvas2D.h"
 #include "Settings.h"
@@ -20,6 +21,7 @@
 
 #include <QCoreApplication>
 #include <QPainter>
+#include <QtConcurrent/qtconcurrentrun.h>
 
 #include "../UniversalContext.hxx"
 #include "../RayMarching.hxx"
@@ -278,19 +280,68 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
         if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[3])
             ObjectMaterial.cDiffuse = SurfaceNormal;
     };
+    // Helper function to create a thread
+    auto CreateThread = [=](auto&& SupersampledRender, auto&& SupersampledRayCaster, auto start, auto end, auto height) {
+        auto ORCopy = ObjectRecords;
+        auto DFCopy = DistanceField::Synthesize(ORCopy);
+        auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
+        for (auto i : Range{ ORCopy.size() })
+            ORCopy[i].IlluminationModel = GIMCopy;
+        // Custom Interrupt handler
+        auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+            if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[3])
+                ObjectMaterial.cDiffuse = SurfaceNormal;
+        };
+        for (auto y : Range{ height })
+            for (auto x = start; x < end; x++) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, SupersampledRayCaster(y, x), Ks, Kt, DFCopy, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+    };
+    // Maximize thread usage
+    QThreadPool::globalInstance()->setMaxThreadCount(1.5 * std::thread::hardware_concurrency());
+    //// Performance metrics logging; should disable later
+    std::cout << "Number of threads available: " << std::thread::hardware_concurrency() << std::endl;
+    int MaxThreads = QThreadPool::globalInstance()->maxThreadCount();
+    std::cout << "Number of threads being used: " << (settings.useMultiThreading ? MaxThreads : 1) << std::endl;
+    auto start = std::chrono::steady_clock::now();
+    std::string ThreadType = settings.useMultiThreading ? "Multithreaded: " : "Singlethreaded: ";
+
 
     auto SupersampledRender = Filter::Frame{ height * Supersampling, width * Supersampling, 3 };
+    auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height * Supersampling, width * Supersampling);
 
-    for (auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height * Supersampling, width * Supersampling); auto y : Range{ height * Supersampling })
-        for (auto x : Range{ width * Supersampling }) {
-            auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, InterruptHandler, 1);
-            SupersampledRender[0][y][x] = AccumulatedIntensity.x;
-            SupersampledRender[1][y][x] = AccumulatedIntensity.y;
-            SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+    if (settings.useMultiThreading) {
+        int ThreadWidth = width * Supersampling / MaxThreads;
+        for (int i = 0; i < MaxThreads; i++) {
+            QtConcurrent::run([=, &SupersampledRender]() {
+                auto start = i * ThreadWidth, end = (i + 1) * ThreadWidth;
+                if (i == MaxThreads - 1) end += (width * Supersampling) % MaxThreads;
+                CreateThread(SupersampledRender, RayCaster, start, end, height * Supersampling);
+            });
         }
+        // wait for threads to finish
+        QThreadPool::globalInstance()->waitForDone();
+    } else {
+        for (auto y : Range{ height * Supersampling })
+            for (auto x : Range{ width * Supersampling }) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+    }
 
     auto ResampledRender = Filter::Transpose(Filter::HorizontalScale(Filter::Transpose(Filter::HorizontalScale(SupersampledRender.Finalize(), 1. / Supersampling)), 1. / Supersampling));
     Filter::DisplayPort::Transfer(*this, ResampledRender);
+
+    std::cout << "Done rendering." << std::endl;
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::cout << ThreadType << elapsed_seconds.count() << "s" << std::endl;
 
     this->update();
 }
