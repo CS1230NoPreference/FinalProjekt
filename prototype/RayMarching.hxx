@@ -76,27 +76,54 @@ namespace Ray {
 			auto& [DistanceFunction, ObjectMaterial, IlluminationModel] = *PointerToObjectRecord;
 			auto SurfacePosition = EyePoint + static_cast<float>(TraveledDistance) * RayDirection;
 			auto SurfaceNormal = DistanceField::𝛁(DistanceFunction, SurfacePosition);
+			auto EstimateReflectedIntensity = [&] {
+				auto ReflectedRayDirection = Reflect(RayDirection, SurfaceNormal);
+				auto ReflectedLightColor = March(SurfacePosition + SelfIntersectionDisplacement * ReflectedRayDirection, ReflectedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, InterruptHandler, RecursionDepth + 1);
+				return glm::vec4{ ReflectedLightColor.x * ObjectMaterial.cReflective.x, ReflectedLightColor.y * ObjectMaterial.cReflective.y, ReflectedLightColor.z * ObjectMaterial.cReflective.z, ReflectedLightColor.w * ObjectMaterial.cReflective.w };
+			};
+			auto EstimateRefractedIntensity = [&] {
+				auto [RefractionNormal, η] = [&] {
+					if (glm::dot(RayDirection, SurfaceNormal) > 0)
+						return std::tuple{ -SurfaceNormal, ObjectMaterial.ior };
+					else
+						return std::tuple{ SurfaceNormal, 1 / ObjectMaterial.ior };
+				}();
+				if (auto [TotalInternalReflection, RefractedRayDirection] = Refract(RayDirection, RefractionNormal, η); TotalInternalReflection == false) {
+					auto RefractedLightColor = March(SurfacePosition - SelfIntersectionDisplacement * RefractionNormal, RefractedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, InterruptHandler, RecursionDepth + 1);
+					return glm::vec4{ RefractedLightColor.x * ObjectMaterial.cTransparent.x, RefractedLightColor.y * ObjectMaterial.cTransparent.y, RefractedLightColor.z * ObjectMaterial.cTransparent.z, RefractedLightColor.w * ObjectMaterial.cTransparent.w };
+				}
+				else
+					return glm::vec4{ 0, 0, 0, 0 };
+			};
+			auto EstimateReflectance = [&] {
+				auto cosθi = glm::dot(RayDirection, SurfaceNormal);
+				auto [η1, η2] = [&] {
+					if (cosθi > 0)
+						return std::tuple{ 1., static_cast<double>(ObjectMaterial.ior) };
+					else
+						return std::tuple{ static_cast<double>(ObjectMaterial.ior), 1. };
+				}();
+				if (auto sinθt = η2 / η1 * std::sqrt(std::max(0., 1. - cosθi * cosθi)); sinθt >= 1)
+					return 1.;
+				else {
+					auto cosθt = std::sqrt(std::max(0., 1. - sinθt * sinθt));
+					auto RootOfRs = (η1 * std::abs(cosθi) - η2 * cosθt) / (η1 * std::abs(cosθi) + η2 * cosθt);
+					auto RootOfRp = (η2 * std::abs(cosθi) - η1 * cosθt) / (η2 * std::abs(cosθi) + η1 * cosθt);
+					return (RootOfRs * RootOfRs + RootOfRp * RootOfRp) / 2;
+				}
+			};
 			InterruptHandler(SurfacePosition, SurfaceNormal, *PointerToObjectRecord);
 			auto AccumulatedIntensity = IlluminationModel(SurfacePosition, SurfaceNormal, EyePoint, ObjectMaterial);
-			if (RecursionDepth < RecursiveMarchingDepth) {
-				if (ObjectMaterial.IsReflective) {
-					auto ReflectedRayDirection = Reflect(RayDirection, SurfaceNormal);
-					auto ReflectedLightColor = March(SurfacePosition + SelfIntersectionDisplacement * ReflectedRayDirection, ReflectedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, InterruptHandler, RecursionDepth + 1);
-					AccumulatedIntensity += ReflectionIntensity * glm::vec4{ ReflectedLightColor.x * ObjectMaterial.cReflective.x, ReflectedLightColor.y * ObjectMaterial.cReflective.y, ReflectedLightColor.z * ObjectMaterial.cReflective.z, ReflectedLightColor.w * ObjectMaterial.cReflective.w };
+			if (RecursionDepth < RecursiveMarchingDepth)
+				if (ObjectMaterial.IsReflective && ObjectMaterial.IsTransparent) {
+					auto Reflectance = static_cast<float>(EstimateReflectance());
+					AccumulatedIntensity += ReflectionIntensity * Reflectance * EstimateReflectedIntensity();
+					AccumulatedIntensity += RefractionIntensity * (1 - Reflectance) * EstimateRefractedIntensity();
 				}
-				if (ObjectMaterial.IsTransparent) {
-					auto [RefractionNormal, η] = [&] {
-						if (glm::dot(RayDirection, SurfaceNormal) > 0)
-							return std::tuple{ -SurfaceNormal, ObjectMaterial.ior };
-						else
-							return std::tuple{ SurfaceNormal, 1 / ObjectMaterial.ior };
-					}();
-					if (auto [TotalInternalReflection, RefractedRayDirection] = Refract(RayDirection, RefractionNormal, η); TotalInternalReflection == false) {
-						auto RefractedLightColor = March(SurfacePosition - SelfIntersectionDisplacement * RefractionNormal, RefractedRayDirection, ReflectionIntensity, RefractionIntensity, DistanceField, InterruptHandler, RecursionDepth + 1);
-						AccumulatedIntensity += RefractionIntensity * glm::vec4{ RefractedLightColor.x * ObjectMaterial.cTransparent.x, RefractedLightColor.y * ObjectMaterial.cTransparent.y, RefractedLightColor.z * ObjectMaterial.cTransparent.z, RefractedLightColor.w * ObjectMaterial.cTransparent.w };
-					}
-				}
-			}
+				else if (ObjectMaterial.IsReflective)
+					AccumulatedIntensity += ReflectionIntensity * EstimateReflectedIntensity();
+				else if (ObjectMaterial.IsTransparent)
+					AccumulatedIntensity += RefractionIntensity * EstimateRefractedIntensity();
 			return AccumulatedIntensity;
 		}
 		return glm::vec4{ 0, 0, 0, 0 };

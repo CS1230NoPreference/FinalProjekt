@@ -222,7 +222,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     ObjectRecords[1].Material.cDiffuse = glm::vec4{ 0, 0, 0, 1 };
     ObjectRecords[1].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
     ObjectRecords[1].Material.cSpecular = glm::vec4{ 1, 1, 1, 1 };
-    ObjectRecords[1].Material.cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    ObjectRecords[1].Material.cReflective = glm::vec4{ 1, 1, 1, 1 };
     ObjectRecords[1].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
     ObjectRecords[1].Material.IsReflective = true;
     ObjectRecords[1].Material.IsTransparent = true;
