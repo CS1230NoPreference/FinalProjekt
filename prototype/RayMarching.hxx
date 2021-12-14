@@ -27,8 +27,8 @@ namespace DistanceField {
 		};
 	}
 	auto 𝛁(auto&& DistanceFunction, auto&& Position) {
-		constexpr auto ε = 1e-4;
-		auto [dx, dy, dz] = std::tuple{ glm::vec4{ ε, 0, 0, 0 }, glm::vec4{ 0, ε, 0, 0 }, glm::vec4{ 0, 0, ε, 0 } };
+                constexpr auto ε = 1e-4;
+                auto [dx, dy, dz] = std::tuple{ glm::vec4{ ε, 0, 0, 0 }, glm::vec4{ 0, ε, 0, 0 }, glm::vec4{ 0, 0, ε, 0 } };
 		return glm::vec4{ glm::normalize(glm::vec3{ DistanceFunction(Position + dx) - DistanceFunction(Position - dx), DistanceFunction(Position + dy) - DistanceFunction(Position - dy), DistanceFunction(Position + dz) - DistanceFunction(Position - dz) }), 0 };
 	}
 }

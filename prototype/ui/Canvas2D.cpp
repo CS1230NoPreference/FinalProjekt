@@ -19,7 +19,10 @@
 #include "Settings.h"
 #include "RayScene.h"
 
+#include <glm/gtc/noise.hpp>
+
 #include <QCoreApplication>
+#include <QFileDialog>
 #include <QPainter>
 #include <QtConcurrent/qtconcurrentrun.h>
 
@@ -226,11 +229,6 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     Lights[1].color = glm::vec4{ 0.25, 0.25, 0.25, 1. };
     Lights[1].dir = -look;
 
-//    auto MandelbulbLights = Lights;
-//    Lights[1].type = LightType::LIGHT_DIRECTIONAL;
-//    Lights[1].color = glm::vec4{ 0.6, 0.6, 0.6, 1. };
-//    Lights[1].dir = -look;
-
     using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
     using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
     using ObjectRecordType = struct { DistanceFunctionType DistanceFunction; CS123SceneMaterial Material; IlluminationModelType IlluminationModel; };
@@ -244,18 +242,20 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto CreateSphere = [](auto&& Center, auto Radius) {
         return [=, Center = Forward(Center)](auto&& Position) { return glm::length(Position - Center) - Radius; };
     };
-    auto hash = [](auto x, auto y, auto z) {
-        return -1.f + 2.f * glm::fract(glm::sin(x * 311.7f + y * 127.1f + z * 241.3f) * 4378.5453123f);
-    };
 
     ObjectRecords[0].DistanceFunction = [](auto&& p) {
-        return static_cast<double>(p.y + 0.2138*std::cos(p.x + p.z)
-                                   + 0.3902*std::sin(p.y)
-                                   - 0.4520*std::sin(p.x));
-//                                   + 0.1242*std::sin(p.x + p.z));
-//        return static_cast<double>(p.y) + std::sin(p.x + p.z);
+        // only perform noise computations if in range (e.g. [0, 1])
+        if (p.y > 1.05f) {
+            return static_cast<double>(p.y);
+        } else {
+            auto noise = glm::perlin(0.5f * p.xz()) + 0.5 * glm::perlin(0.75f * p.xz());
+            noise /= 1.5;
+            // ridges or no?
+            // noise = glm::round(noise * 6) / 6.f);
+            return static_cast<double>(p.y - noise);
+        }
     };
-    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.85, 0.9, 0.5, 1 };
+    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.4, 0.95, 0.4, 1 };
     ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
     ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
     ObjectRecords[0].Material.shininess = 32;
@@ -330,7 +330,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
         auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
         for (auto i : Range{ ORCopy.size() })
             ORCopy[i].IlluminationModel = GIMCopy;
-//        ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(MandelbulbLights, Ka, Kd, Ks, DFCopy, Hardness);
+        ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, 25 * Hardness);
         // Custom Interrupt handler
         auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
             if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[ORCopy.size() - 1])
@@ -390,6 +390,10 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     std::cout << ThreadType << elapsed_seconds.count() << "s" << std::endl;
 
     this->update();
+
+    QString filename = QString("../test%1.jpg").arg(2);
+    this->getImage()->save(filename);
+
 }
 
 void Canvas2D::cancelRender() {
