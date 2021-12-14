@@ -215,7 +215,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto Lights = std::vector<CS123SceneLightData>{};
 
     Ray::RelativeStepSizeForOcclusionEstimation = 0.5;
-    Ray::RelativeStepSizeForIntersection = 0.7;
+    Ray::RelativeStepSizeForIntersection = 0.5;
 
     Lights.resize(2);
     Lights[0].type = LightType::LIGHT_DIRECTIONAL;
@@ -226,10 +226,10 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     Lights[1].color = glm::vec4{ 0.25, 0.25, 0.25, 1. };
     Lights[1].dir = -look;
 
-    auto MandelbulbLights = Lights;
-    Lights[1].type = LightType::LIGHT_DIRECTIONAL;
-    Lights[1].color = glm::vec4{ 0.6, 0.6, 0.6, 1. };
-    Lights[1].dir = -look;
+//    auto MandelbulbLights = Lights;
+//    Lights[1].type = LightType::LIGHT_DIRECTIONAL;
+//    Lights[1].color = glm::vec4{ 0.6, 0.6, 0.6, 1. };
+//    Lights[1].dir = -look;
 
     using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
     using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
@@ -244,12 +244,16 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto CreateSphere = [](auto&& Center, auto Radius) {
         return [=, Center = Forward(Center)](auto&& Position) { return glm::length(Position - Center) - Radius; };
     };
+    auto hash = [](auto x, auto y, auto z) {
+        return -1.f + 2.f * glm::fract(glm::sin(x * 311.7f + y * 127.1f + z * 241.3f) * 4378.5453123f);
+    };
 
     ObjectRecords[0].DistanceFunction = [](auto&& p) {
         return static_cast<double>(p.y + 0.2138*std::cos(p.x + p.z)
-                                   - 0.3902*std::sin(p.x + p.y)
-                                   + 0.1242*std::sin(p.x + p.z));
-//        return static_cast<double>(p.y);
+                                   + 0.3902*std::sin(p.y)
+                                   - 0.4520*std::sin(p.x));
+//                                   + 0.1242*std::sin(p.x + p.z));
+//        return static_cast<double>(p.y) + std::sin(p.x + p.z);
     };
     ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.85, 0.9, 0.5, 1 };
     ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
@@ -326,7 +330,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
         auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
         for (auto i : Range{ ORCopy.size() })
             ORCopy[i].IlluminationModel = GIMCopy;
-        ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(MandelbulbLights, Ka, Kd, Ks, DFCopy, Hardness);
+//        ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(MandelbulbLights, Ka, Kd, Ks, DFCopy, Hardness);
         // Custom Interrupt handler
         auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
             if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[ORCopy.size() - 1])
