@@ -34,11 +34,11 @@ namespace DistanceField {
 }
 
 namespace Ray {
-	auto MaximumMarchingSteps = 1000;
-	auto FarthestMarchingDistance = 100.;
-	auto IntersectionThreshold = 1e-3;
+        auto MaximumMarchingSteps = 1000;
+        auto FarthestMarchingDistance = 100.;
+        auto IntersectionThreshold = 1e-3;
 	auto RecursiveMarchingDepth = 4;
-	auto RelativeStepSizeForIntersection = 1.;
+        auto RelativeStepSizeForIntersection = 1.;
 	auto RelativeStepSizeForOcclusionEstimation = 0.1;
 
 	auto Intersect(auto&& DistanceField, auto&& EyePoint, auto&& RayDirection) {
@@ -48,9 +48,9 @@ namespace Ray {
 		}());
 		for (auto TraveledDistance = 1e-3; auto _ : Range{ MaximumMarchingSteps }) {
 			auto [UnboundingRadius, PointerToObjectRecord] = DistanceField(EyePoint + static_cast<float>(TraveledDistance) * RayDirection);
-			TraveledDistance += RelativeStepSizeForIntersection * std::abs(UnboundingRadius);
-			if (0 <= UnboundingRadius && UnboundingRadius < IntersectionThreshold)
-				return std::tuple{ TraveledDistance, PointerToObjectRecord };
+                        TraveledDistance += RelativeStepSizeForIntersection * std::abs(UnboundingRadius);
+                        if (0 <= UnboundingRadius && UnboundingRadius < IntersectionThreshold)
+                                return std::tuple{ TraveledDistance, PointerToObjectRecord };
 			if (TraveledDistance > FarthestMarchingDistance)
 				return std::tuple{ NoIntersection, static_cast<ObjectRecordPointerType>(nullptr) };
 		}
@@ -126,7 +126,7 @@ namespace Ray {
 					AccumulatedIntensity += RefractionIntensity * EstimateRefractedIntensity();
 			return AccumulatedIntensity;
 		}
-		return glm::vec4{ 0, 0, 0, 0 };
+                return glm::vec4{ 0, 0, 0, 0 };
 	}
 }
 
@@ -153,7 +153,7 @@ namespace Illuminations {
 					else
 						return Light.color;
 				}();
-				auto OccludedIntensity = static_cast<float>(Ray::EstimateOccludedIntensity(SurfacePosition, -LightDirection, DistanceField, Hardness));
+                                auto OccludedIntensity = static_cast<float>(Ray::EstimateOccludedIntensity(SurfacePosition, -LightDirection, DistanceField, Hardness));
 				AccumulatedIntensity += OccludedIntensity * Diffuse(LightDirection, SurfaceNormal, LightColor, Kd * ObjectMaterial.cDiffuse);
 				AccumulatedIntensity += OccludedIntensity * Specular(LightDirection, SurfaceNormal, glm::normalize(EyePoint - SurfacePosition), LightColor, Ks * ObjectMaterial.cSpecular, ObjectMaterial.shininess);
 			}

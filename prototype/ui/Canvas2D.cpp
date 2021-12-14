@@ -53,6 +53,9 @@ void Canvas2D::paintEvent(QPaintEvent *e) {
 void Canvas2D::settingsChanged() {
     // TODO: Process changes to the application settings.
     std::cout << "Canvas2d::settingsChanged() called. Settings have changed" << std::endl;
+
+    settings.fractal_depth= settings.shapeParameter1;
+    settings.rendernumber= settings.shapeType;
 }
 
 // ********************************************************************************************
@@ -171,10 +174,33 @@ void Canvas2D::renderImage(CS123SceneCameraData* camera, int width, int height) 
 void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     this->resize(width, height);
 
-    auto Supersampling = 4;
+
+    if( settings.renderSphere==settings.rendernumber){
+        std::cout<<"renderSphere"<<std::endl;
+    }
+    if( settings.rendertree==settings.rendernumber){
+          std::cout<<"rendertree"<< std::endl;
+
+    }
+
+    if( settings.rendermandelbulb==settings.rendernumber){
+           std::cout<<"rendermandelbulb"<< std::endl;
+
+    }
+
+    if( settings.renderepicscene1==settings.rendernumber){
+           std::cout<<"renderepicscene1"<< std::endl;
+    }
+
+    if( settings.renderepicscene2==settings.rendernumber){
+           std::cout<<"renderepicscene2"<< std::endl;
+    }
+
+    auto Supersampling = settings.useSuperSampling ? settings.numSuperSamples : 1;
 
     auto iTime = 4200;
-    auto rayOrigin = glm::vec4{ 6.0 * std::sin(iTime * .3), 4.8, 6.0 * std::cos(iTime * .3), 1 };
+    auto rayOrigin = 1.45f * glm::vec4{ 6.0 * std::sin(iTime * .3), 4.8, 6.0 * std::cos(iTime * .3), 1 };
+//    auto rayOrigin = glm::vec4{0, 0, -1, 0};
     auto focalLength = 2.;
 
     auto target = glm::vec4{ 0, 0, 0, 1 };
@@ -189,6 +215,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto Lights = std::vector<CS123SceneLightData>{};
 
     Ray::RelativeStepSizeForOcclusionEstimation = 0.5;
+    Ray::RelativeStepSizeForIntersection = 0.7;
 
     Lights.resize(2);
     Lights[0].type = LightType::LIGHT_DIRECTIONAL;
@@ -197,6 +224,11 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
 
     Lights[1].type = LightType::LIGHT_DIRECTIONAL;
     Lights[1].color = glm::vec4{ 0.25, 0.25, 0.25, 1. };
+    Lights[1].dir = -look;
+
+    auto MandelbulbLights = Lights;
+    Lights[1].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[1].color = glm::vec4{ 0.6, 0.6, 0.6, 1. };
     Lights[1].dir = -look;
 
     using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
@@ -213,8 +245,13 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
         return [=, Center = Forward(Center)](auto&& Position) { return glm::length(Position - Center) - Radius; };
     };
 
-    ObjectRecords[0].DistanceFunction = [](auto&& p) { return static_cast<double>(p.y); };
-    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.2, 0.2, 0.6, 1 };
+    ObjectRecords[0].DistanceFunction = [](auto&& p) {
+        return static_cast<double>(p.y + 0.2138*std::cos(p.x + p.z)
+                                   - 0.3902*std::sin(p.x + p.y)
+                                   + 0.1242*std::sin(p.x + p.z));
+//        return static_cast<double>(p.y);
+    };
+    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.85, 0.9, 0.5, 1 };
     ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
     ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
     ObjectRecords[0].Material.shininess = 32;
@@ -229,14 +266,14 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     ObjectRecords[1].Material.IsReflective = true;
     ObjectRecords[1].Material.IsTransparent = true;
     ObjectRecords[1].Material.shininess = 32;
-    ObjectRecords[1].Material.ior = 3;
+    ObjectRecords[1].Material.ior = 2;
     ObjectRecords[1].IlluminationModel = GlobalIlluminationModel;
 
     ObjectRecords[2].DistanceFunction = CreateSphere(glm::vec4{ 2, 0.25, 1.5, 1 }, 1.);
     ObjectRecords[2].Material.cDiffuse = glm::vec4{ 1, 0, 0, 1 };
     ObjectRecords[2].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
     ObjectRecords[2].Material.cSpecular = glm::vec4{ 1, 1, 1, 1 };
-    ObjectRecords[2].Material.cReflective = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    ObjectRecords[2].Material.cReflective = glm::vec4{ 0.5, 0.5, 0.5, 1 };
     ObjectRecords[2].Material.IsReflective = true;
     ObjectRecords[2].Material.shininess = 8;
     ObjectRecords[2].IlluminationModel = GlobalIlluminationModel;
@@ -276,10 +313,12 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     ObjectRecords[3].Material.shininess = 1;
     ObjectRecords[3].IlluminationModel = GlobalIlluminationModel;
 
+
     auto InterruptHandler = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
-        if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[3])
+        if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[ObjectRecords.size() - 1])
             ObjectMaterial.cDiffuse = SurfaceNormal;
     };
+
     // Helper function to create a thread
     auto CreateThread = [=](auto&& SupersampledRender, auto&& SupersampledRayCaster, auto start, auto end, auto height) {
         auto ORCopy = ObjectRecords;
@@ -287,11 +326,13 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
         auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
         for (auto i : Range{ ORCopy.size() })
             ORCopy[i].IlluminationModel = GIMCopy;
+        ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(MandelbulbLights, Ka, Kd, Ks, DFCopy, Hardness);
         // Custom Interrupt handler
         auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
-            if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[3])
+            if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[ORCopy.size() - 1])
                 ObjectMaterial.cDiffuse = SurfaceNormal;
         };
+        // Render each pixel
         for (auto y : Range{ height })
             for (auto x = start; x < end; x++) {
                 auto AccumulatedIntensity = Ray::March(rayOrigin, SupersampledRayCaster(y, x), Ks, Kt, DFCopy, InterruptHandler, 1);
@@ -300,6 +341,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
                 SupersampledRender[2][y][x] = AccumulatedIntensity.z;
             }
     };
+
     // Maximize thread usage
     QThreadPool::globalInstance()->setMaxThreadCount(1.5 * std::thread::hardware_concurrency());
     //// Performance metrics logging; should disable later
@@ -349,3 +391,70 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
 void Canvas2D::cancelRender() {
     // TODO: cancel the raytracer (optional)
 }
+
+/* Fractal Tree
+    int leaf=0;
+    ObjectRecords[2].DistanceFunction = [&](auto&& p) {
+            auto ln =[](auto&& p, auto&& a, auto&& b, auto&& R) {
+                double r = glm::dot(p-a,b-a)/glm::dot(b-a,b-a);
+                r = std::clamp(r,0.,1.);
+               // p.x+= 0.2*sqrt(R)*smoothstep(1.,0.,abs(r*2.-1.));
+                return glm::length(p-a-(float)r*(b-a))-R*(1.5-0.4*r);
+            };
+            auto ro =[](auto&& a) {
+                float s = sin(a), c = cos(a);
+                return glm::mat2(c,-s,s,c);
+            };
+
+            double l = glm::length(p);
+            double iTime= 113.14;
+            auto pos= p;
+
+            pos.y += 0.4;
+            pos.z += 0.2;
+            pos.x += 0.0;
+            float pi =3.14159;
+            //pos.xz *= 1.;
+            glm::vec2 rl = glm::vec2(0.02,.25+ 0.01*sin(pi*4.*iTime));
+            leaf=0;
+            for (int i = 1; i <16; i++) {
+                l = std::min(l,ln(pos,glm::vec4(0),glm::vec4(0,rl.y,0,0),rl.x));
+                pos.y -= rl.y;
+                //p.xy *= ro(0.2*sin(3.1*iTime+float(i))+sin(0.222*iTime)*(-0.1*sin(0.4*pi*iTime)+sin(0.543*iTime)/max(float(i),2.)));
+                pos.x = abs(pos.x);
+                //p.zy *= ro(0.5);
+                auto tmp = glm::vec2{pos.x,pos.y} * ro(0.6+0.4*sin(iTime)*sin(0.871*iTime)+0.05*float(i)*sin(2.*iTime));
+                pos.x = tmp.x;
+                pos.y = tmp.y;
+                tmp = glm::vec2{pos.z,pos.x}*ro(0.5*pi+0.2*sin(0.5278*iTime)+0.8*float(i)*(sin(0.1*iTime)*(sin(0.1*pi*iTime)+sin(0.333*iTime)+0.2*sin(1.292*iTime))));
+                pos.z =tmp.x;
+                pos.x =tmp.y;
+
+                rl *= (.7+0.015*float(i)*(sin(iTime)+0.1*sin(4.*pi*iTime)));
+
+                if( glm::length(pos)-0.15*sqrt(rl.x) <l && i>10){
+                    leaf=1;
+                }
+
+                l=std::min(l,glm::length(pos)-0.15*sqrt(rl.x));
+            }
+            return l;
+        };
+    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 1.0, 0.2, 0.6, 1 };
+    ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
+    ObjectRecords[0].Material.cSpecular = glm::vec4{ 0., 0., 0., 1 };
+    ObjectRecords[0].Material.shininess = 32;
+    ObjectRecords[0].IlluminationModel = GlobalIlluminationModel;
+
+    auto InterruptHandler = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+        if (leaf == 1)
+            ORCopy[2].Material.cDiffuse = glm::vec4{ 0.0, 1.0, 0.0, 1 };
+        else
+            ORCopy[2].Material.cDiffuse = glm::vec4{ 165.0/255.0, 42.0/255.0, 42.0/255.0, 1 };
+
+        if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[ORCopy.size() - 1])
+            ObjectMaterial.cDiffuse = SurfaceNormal;
+    };
+
+
+ */

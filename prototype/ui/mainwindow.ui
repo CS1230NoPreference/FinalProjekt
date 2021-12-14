@@ -83,8 +83,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>250</width>
-             <height>3058</height>
+             <width>234</width>
+             <height>3046</height>
             </rect>
            </property>
           </widget>
@@ -475,7 +475,7 @@
         <item>
          <widget class="QRadioButton" name="shapeTypeCube">
           <property name="text">
-           <string>Cube</string>
+           <string>Tree</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -485,7 +485,7 @@
         <item>
          <widget class="QRadioButton" name="shapeTypeCone">
           <property name="text">
-           <string>Cone</string>
+           <string>Mandelbulb</string>
           </property>
          </widget>
         </item>
@@ -499,14 +499,14 @@
         <item>
          <widget class="QRadioButton" name="shapeTypeCylinder">
           <property name="text">
-           <string>Cylinder</string>
+           <string>Epic Scene 1</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QRadioButton" name="shapeTypeTorus">
           <property name="text">
-           <string>Torus</string>
+           <string>Epic Scene 2</string>
           </property>
          </widget>
         </item>
@@ -1920,7 +1920,7 @@
      <x>0</x>
      <y>0</y>
      <width>600</width>
-     <height>25</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

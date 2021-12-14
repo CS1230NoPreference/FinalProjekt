@@ -140,6 +140,15 @@ struct Settings {
 
     int currentTab;
 
+    //final
+    int renderSphere=SHAPE_SPHERE ;
+    int rendertree = SHAPE_CUBE;
+    int rendermandelbulb =SHAPE_CONE;
+    int renderepicscene1 =SHAPE_CYLINDER;
+    int renderepicscene2= SHAPE_TORUS;
+    int rendernumber;
+    int fractal_depth;
+
 };
 
 // The global Settings object, will be initialized by MainWindow
