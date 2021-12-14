@@ -27,30 +27,30 @@ namespace DistanceField {
 		};
 	}
 	auto 𝛁(auto&& DistanceFunction, auto&& Position) {
-                constexpr auto ε = 1e-4;
-                auto [dx, dy, dz] = std::tuple{ glm::vec4{ ε, 0, 0, 0 }, glm::vec4{ 0, ε, 0, 0 }, glm::vec4{ 0, 0, ε, 0 } };
+		constexpr auto ε = 1e-4;
+		auto [dx, dy, dz] = std::tuple{ glm::vec4{ ε, 0, 0, 0 }, glm::vec4{ 0, ε, 0, 0 }, glm::vec4{ 0, 0, ε, 0 } };
 		return glm::vec4{ glm::normalize(glm::vec3{ DistanceFunction(Position + dx) - DistanceFunction(Position - dx), DistanceFunction(Position + dy) - DistanceFunction(Position - dy), DistanceFunction(Position + dz) - DistanceFunction(Position - dz) }), 0 };
 	}
 }
 
 namespace Ray {
-        auto MaximumMarchingSteps = 1000;
-        auto FarthestMarchingDistance = 100.;
-        auto IntersectionThreshold = 1e-3;
+	auto MaximumMarchingSteps = 10000;
+	auto FarthestMarchingDistance = 1000.;
+	auto IntersectionThreshold = 1e-3;
 	auto RecursiveMarchingDepth = 4;
-        auto RelativeStepSizeForIntersection = 1.;
+	auto RelativeStepSizeForIntersection = 1.;
 	auto RelativeStepSizeForOcclusionEstimation = 0.1;
 
 	auto Intersect(auto&& DistanceField, auto&& EyePoint, auto&& RayDirection) {
 		using ObjectRecordPointerType = decltype([&] {
 			auto [_, PointerToObjectRecord] = DistanceField(EyePoint + 0.f * RayDirection);
 			return PointerToObjectRecord;
-		}());
+			}());
 		for (auto TraveledDistance = 1e-3; auto _ : Range{ MaximumMarchingSteps }) {
 			auto [UnboundingRadius, PointerToObjectRecord] = DistanceField(EyePoint + static_cast<float>(TraveledDistance) * RayDirection);
-                        TraveledDistance += RelativeStepSizeForIntersection * std::abs(UnboundingRadius);
-                        if (0 <= UnboundingRadius && UnboundingRadius < IntersectionThreshold)
-                                return std::tuple{ TraveledDistance, PointerToObjectRecord };
+			TraveledDistance += RelativeStepSizeForIntersection * std::abs(UnboundingRadius);
+			if (0 <= UnboundingRadius && UnboundingRadius < IntersectionThreshold)
+				return std::tuple{ TraveledDistance, PointerToObjectRecord };
 			if (TraveledDistance > FarthestMarchingDistance)
 				return std::tuple{ NoIntersection, static_cast<ObjectRecordPointerType>(nullptr) };
 		}
@@ -58,11 +58,9 @@ namespace Ray {
 	}
 	auto EstimateOccludedIntensity(auto&& EyePoint, auto&& RayDirection, auto&& DistanceField, auto Hardness) {
 		auto OccludedIntensity = 1.;
-		for (auto [TraveledDistance, PreviousUnboundingRadius] = std::array{ 1e-3, 1e20 }; auto _ : Range{ MaximumMarchingSteps }) {
+		for (auto TraveledDistance = 1e-3; auto _ : Range{ MaximumMarchingSteps }) {
 			auto [UnboundingRadius, __] = DistanceField(EyePoint + static_cast<float>(SelfIntersectionDisplacement + TraveledDistance) * RayDirection);
-			auto δ = UnboundingRadius * UnboundingRadius / (2.0 * PreviousUnboundingRadius);
-			OccludedIntensity = std::min(OccludedIntensity, Hardness * std::sqrt(UnboundingRadius * UnboundingRadius - δ * δ) / std::max(0., TraveledDistance - δ));
-			PreviousUnboundingRadius = UnboundingRadius;
+			OccludedIntensity = std::min(OccludedIntensity, std::abs(Hardness * UnboundingRadius / TraveledDistance));
 			TraveledDistance += RelativeStepSizeForOcclusionEstimation * UnboundingRadius;
 			if (UnboundingRadius < IntersectionThreshold)
 				return 0.;
@@ -126,7 +124,7 @@ namespace Ray {
 					AccumulatedIntensity += RefractionIntensity * EstimateRefractedIntensity();
 			return AccumulatedIntensity;
 		}
-                return glm::vec4{ 0, 0, 0, 0 };
+		return glm::vec4{ 0, 0, 0, 0 };
 	}
 }
 
@@ -153,7 +151,7 @@ namespace Illuminations {
 					else
 						return Light.color;
 				}();
-                                auto OccludedIntensity = static_cast<float>(Ray::EstimateOccludedIntensity(SurfacePosition, -LightDirection, DistanceField, Hardness));
+				auto OccludedIntensity = static_cast<float>(Ray::EstimateOccludedIntensity(SurfacePosition, -LightDirection, DistanceField, Hardness));
 				AccumulatedIntensity += OccludedIntensity * Diffuse(LightDirection, SurfaceNormal, LightColor, Kd * ObjectMaterial.cDiffuse);
 				AccumulatedIntensity += OccludedIntensity * Specular(LightDirection, SurfaceNormal, glm::normalize(EyePoint - SurfacePosition), LightColor, Ks * ObjectMaterial.cSpecular, ObjectMaterial.shininess);
 			}

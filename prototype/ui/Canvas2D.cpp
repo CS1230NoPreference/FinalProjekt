@@ -217,7 +217,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto Hardness = 2.;
     auto Lights = std::vector<CS123SceneLightData>{};
 
-    Ray::RelativeStepSizeForOcclusionEstimation = 0.5;
+    Ray::RelativeStepSizeForOcclusionEstimation = 0.1;
     Ray::RelativeStepSizeForIntersection = 0.5;
 
     Lights.resize(2);
@@ -330,7 +330,7 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
         auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
         for (auto i : Range{ ORCopy.size() })
             ORCopy[i].IlluminationModel = GIMCopy;
-        ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, 25 * Hardness);
+       // ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
         // Custom Interrupt handler
         auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
             if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[ORCopy.size() - 1])
