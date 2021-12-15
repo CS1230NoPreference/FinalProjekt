@@ -36,7 +36,7 @@ namespace DistanceField {
 namespace Ray {
 	auto MaximumMarchingSteps = 10000;
 	auto FarthestMarchingDistance = 1000.;
-	auto IntersectionThreshold = 1e-3;
+        auto IntersectionThreshold = 1e-3;
 	auto RecursiveMarchingDepth = 4;
 	auto RelativeStepSizeForIntersection = 1.;
 	auto RelativeStepSizeForOcclusionEstimation = 0.1;
@@ -142,17 +142,17 @@ namespace Illuminations {
 						throw std::runtime_error{ "Unrecognized light type detected!" };
 				}();
 				auto LightColor = [&] {
-					if (Light.type == LightType::LIGHT_POINT) {
-						auto LightDisplacement = SurfacePosition - Light.pos;
-						auto SquaredLightDistance = glm::dot(LightDisplacement, LightDisplacement);
-						auto LightDistance = std::sqrt(SquaredLightDistance);
-						return std::min(1 / (Light.function.x + Light.function.y * LightDistance + Light.function.z * SquaredLightDistance), 1.f) * Light.color;
-					}
-					else
+                                        if (Light.type == LightType::LIGHT_POINT) {
+                                                auto LightDisplacement = SurfacePosition - Light.pos;
+                                                auto SquaredLightDistance = glm::dot(LightDisplacement, LightDisplacement);
+                                                auto LightDistance = std::sqrt(SquaredLightDistance);
+                                                return std::min(1 / (Light.function.x + Light.function.y * LightDistance + Light.function.z * SquaredLightDistance), 1.f) * Light.color;
+                                        }
+                                        else
 						return Light.color;
 				}();
-				auto OccludedIntensity = static_cast<float>(Ray::EstimateOccludedIntensity(SurfacePosition, -LightDirection, DistanceField, Hardness));
-				AccumulatedIntensity += OccludedIntensity * Diffuse(LightDirection, SurfaceNormal, LightColor, Kd * ObjectMaterial.cDiffuse);
+                                auto OccludedIntensity = static_cast<float>(Ray::EstimateOccludedIntensity(SurfacePosition, -LightDirection, DistanceField, Hardness));
+                                AccumulatedIntensity += OccludedIntensity * Diffuse(LightDirection, SurfaceNormal, LightColor, Kd * ObjectMaterial.cDiffuse);
 				AccumulatedIntensity += OccludedIntensity * Specular(LightDirection, SurfaceNormal, glm::normalize(EyePoint - SurfacePosition), LightColor, Ks * ObjectMaterial.cSpecular, ObjectMaterial.shininess);
 			}
 			return AccumulatedIntensity;
