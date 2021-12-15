@@ -1,4 +1,4 @@
-# CSCI1230 Final Project: Fractal Generation
+# CSCI1230 Final Project: README
 
 Team: No Preference
 
