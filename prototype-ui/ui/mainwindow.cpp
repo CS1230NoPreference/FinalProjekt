@@ -180,7 +180,7 @@ void MainWindow::dataBind() {
     BIND(ChoiceBinding::bindRadioButtons(
             shapesButtonGroup,
             NUM_SHAPE_TYPES,
-            settings.shapeType,
+            settings.sceneType,
             ui->sphereScene,
             ui->treeScene,
             ui->mb1Scene,

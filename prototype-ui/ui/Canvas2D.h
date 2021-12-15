@@ -26,6 +26,12 @@ public:
     // UI will call this from the button on the "Ray" dock
     void renderImage(CS123SceneCameraData* camera, int width, int height);
 
+    void renderSphere( int width, int height);
+    void rendertree( int width, int height);
+    void rendermandelbulb( int width, int height);
+    void renderepicscene1( int width, int height);
+    void renderepicscene2( int width, int height);
+
     // This will be called when the settings have changed
     virtual void settingsChanged();
 

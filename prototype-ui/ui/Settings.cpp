@@ -28,7 +28,7 @@ void Settings::loadSettingsOrDefaults() {
     QSettings s("CS123", "CS123");
 
     // Shapes
-    shapeType = s.value("shapeType", MB1_SCENE).toInt();
+    sceneType = s.value("shapeType", MB1_SCENE).toInt();
     fractalDepth = s.value("fractalDepth", 15).toInt();
     fractalWidth = s.value("fractalWith", 5).toInt();
     fractalHeight = s.value("fractalHeight", 5).toInt();
@@ -89,7 +89,7 @@ void Settings::saveSettings() {
     s.setValue("rotateAngle", rotateAngle);
 
     // Shapes
-    s.setValue("shapeType", shapeType);
+    s.setValue("shapeType", sceneType);
     s.setValue("fractalDepth", fractalDepth);
     s.setValue("fractalWidth", fractalWidth);
     s.setValue("fractalHeight", fractalHeight);

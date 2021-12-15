@@ -75,6 +75,7 @@ HEADERS += \
     ui/SupportCanvas2D.h \
     ui/SupportCanvas3D.h \
     ui/Settings.h \
+    ui/distance_functions.hxx \
     ui/mainwindow.h \
     ui/Databinding.h \
     ui_mainwindow.h \

@@ -35,7 +35,7 @@ enum FilterType {
 };
 
 // Enumeration values for the Shapes that the user can select in the GUI.
-enum ShapeType {
+enum SceneType {
     SPHERE_SCENE,
     TREE_SCENE,
     MB1_SCENE,
@@ -98,7 +98,7 @@ struct Settings {
 
     // Shapes
     bool useSceneviewScene;
-    int shapeType;              // Selected shape type
+    int sceneType;              // Selected shape type
     int fractalDepth;
     int fractalWidth;
     int fractalHeight;

@@ -29,6 +29,7 @@
 #include "../UniversalContext.hxx"
 #include "../RayMarching.hxx"
 #include "../Filter.hxx"
+#include "distance_functions.hxx"
 
 Canvas2D::Canvas2D() {
     this->Width = this->m_image->width();
@@ -174,17 +175,48 @@ void Canvas2D::renderImage(CS123SceneCameraData* camera, int width, int height) 
 }
 */
 
+// UI stuff
+
 void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
+    this->resize(width, height);
+
+    if(settings.sceneType == SceneType::SPHERE_SCENE) {
+        this->renderSphere(width, height);
+    }
+
+    if(settings.sceneType == SceneType::TREE_SCENE) {
+        this->rendertree(width, height);
+    }
+
+    if( settings.sceneType == SceneType::MB1_SCENE) {
+           this->rendermandelbulb(width, height);
+    }
+
+    if( settings.sceneType == SceneType::EPIC_SCENE_1) {
+           this->renderepicscene1(width, height);
+    }
+
+    if( settings.sceneType == SceneType::EPIC_SCENE_2){
+           this->renderepicscene2(width, height);
+    }
+}
+
+
+
+
+
+// sphere rendering
+
+void Canvas2D::renderSphere( int width, int height) {
     this->resize(width, height);
 
     auto Supersampling = settings.useSuperSampling ? settings.numSuperSamples : 1;
 
     auto iTime = 4200;
-    //auto rayOrigin = 1.45f * glm::vec4{ 6.0 * std::sin(iTime * .3), 4.8, 6.0 * std::cos(iTime * .3), 1 };
-    auto rayOrigin = glm::vec4{0., 0., 11., 0.};
+    auto rayOrigin = 1.45f * glm::vec4{ 6.0 * std::sin(iTime * .3), 4.8, 6.0 * std::cos(iTime * .3), 1 };
     auto focalLength = 2.;
 
-    auto target = glm::vec4{ 0, 3., 0, 1 };
+    auto target = glm::vec4{ 0, 0, 0, 1 };
     auto look = glm::normalize(rayOrigin - target);
     auto up = glm::vec4{ 0, 1, 0, 0 };
 
@@ -215,158 +247,398 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     auto DistanceField = DistanceField::Synthesize(ObjectRecords);
     auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceField, Hardness);
 
-    ObjectRecords.resize(1);
+    ObjectRecords.resize(3);
 
-    auto CreateSphere = [](auto&& Center, auto Radius) {
-        return [=, Center = Forward(Center)](auto&& Position) { return glm::length(Position - Center) - Radius; };
-    };
-
-    auto CreateMandelbulb=[](auto Power, auto&& Center){
-
-
-        return [=, Center = Forward(Center)](auto&& p) {
-
-            auto pos = p-Center;
-
-
-            auto z = glm::vec3{ pos };
-            auto dr = 1.0;
-            auto r = 0.0;
-            for (auto _ : Range{ 5 }) {
-                r = glm::length(z);
-                if (r > 4.) break;
-                // convert to polar coordinates
-                auto theta = std::acos(z.z / r);
-                auto phi = std::atan2(z.y, z.x);
-                dr = std::pow(r, Power - 1) * Power * dr + 1;
-
-                // scale and rotate the point
-                auto zr = static_cast<float>(std::pow(r, Power));
-                theta = theta *Power;
-                phi = phi * Power;
-
-                // convert back to cartesian coordinates
-                z = zr * glm::vec3{
-                    std::sin(theta) * std::cos(phi),
-                    std::sin(phi) * std::sin(theta),
-                    std::cos(theta) };
-                z += glm::vec3{ pos };
-            }
-            return 0.5 * std::log(r) * r / dr;
-        };
-
-
-    };
-
-    auto CreateTerrain=[](){
-
-        return [=](auto&& p) {
-            if (p.y > 1.05f) {
-                return static_cast<double>(p.y);
-            } else {
-                auto noise = glm::perlin(0.5f * p.xz()) + 0.5 * glm::perlin(0.75f * p.xz());
-                noise /= 1.5;
-                // ridges or no?
-                // noise = glm::round(noise * 6) / 6.f);
-                return static_cast<double>(p.y - noise);
-            }
-        };
-
-    };
-
-    auto CreateTree=[](auto depth,auto height,auto width, auto rxy,auto rzx,auto&& Center){
-
-
-
-
-
-        return [=, Center = Forward(Center)](auto&& p) {
-
-            auto ln =[](auto&& p, auto&& a, auto&& b, auto&& R) {
-                double r = glm::dot(p-a,b-a)/glm::dot(b-a,b-a);
-                r = std::clamp(r,0.,1.);
-                return glm::length(p-a-(float)r*(b-a))-R*(1.5-0.4*r);
-            };
-            auto ro =[](auto&& a) {
-                float s = sin(a), c = cos(a);
-                return glm::mat2(c,-s,s,c);
-            };
-
-            double l = glm::length(p);
-            auto pos= p;
-
-            pos.x -= Center.x;
-            pos.y -= Center.y;
-            pos.z -= Center.z;
-            float pi =3.14159;
-            //pos.xz *= 1.;
-            glm::vec2 rl = glm::vec2(width,height);
-            //leaf=0;
-            for (int i = 1; i <depth; i++) {
-                l = std::min(l,ln(pos,glm::vec4(0),glm::vec4(0,rl.y,0,0),rl.x));
-                pos.y -= rl.y;
-                pos.x = abs(pos.x);
-                auto tmp = glm::vec2{pos.x,pos.y} * ro(rxy);
-                pos.x = tmp.x;
-                pos.y = tmp.y;
-                tmp = glm::vec2{pos.z,pos.x}*ro(rzx);
-                pos.z =tmp.x;
-                pos.x =tmp.y;
-
-                rl *= (.7+0.015*float(i));
-
-                if( glm::length(pos)-0.15*sqrt(rl.x) <l && i>10){
-                    //leaf=1;
-                }
-
-                l=std::min(l,glm::length(pos)-0.15*sqrt(rl.x));
-            }
-            return l;
-
-        };
-
-    };
-
-
-
-
-    // first: height; second: width
-    ObjectRecords[0].DistanceFunction = CreateTree(settings.fractalDepth, 2.,.2,1.,0.4,glm::vec4{ 0., 0., 0., 1 });
-    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.76, 0.69, 0.5, 1 };
+    ObjectRecords[0].DistanceFunction = CreateTerrain();
+    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.4, 0.95, 0.4, 1 };
     ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
     ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
     ObjectRecords[0].Material.shininess = 32;
     ObjectRecords[0].IlluminationModel = GlobalIlluminationModel;
 
-//    ObjectRecords[1].DistanceFunction = CreateSphere(glm::vec4{ -1, 2.25, 0, 1 }, 1.5);
-//    ObjectRecords[1].Material.cDiffuse = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[1].DistanceFunction = CreateSphere(glm::vec4{ -1, 2.25, 0, 1 }, 1.5);
+    ObjectRecords[1].Material.cDiffuse = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[1].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[1].Material.cSpecular = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[1].Material.cReflective = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[1].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[1].Material.IsReflective = true;
+    ObjectRecords[1].Material.IsTransparent = true;
+    ObjectRecords[1].Material.shininess = 32;
+    ObjectRecords[1].Material.ior = 2;
+    ObjectRecords[1].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[2].DistanceFunction = CreateSphere(glm::vec4{ 2, 0.25, 1.5, 1 }, 1.);
+    ObjectRecords[2].Material.cDiffuse = glm::vec4{ 1, 0, 0, 1 };
+    ObjectRecords[2].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[2].Material.cSpecular = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[2].Material.cReflective = glm::vec4{ 0.5, 0.5, 0.5, 1 };
+    ObjectRecords[2].Material.IsReflective = true;
+    ObjectRecords[2].Material.shininess = 8;
+    ObjectRecords[2].IlluminationModel = GlobalIlluminationModel;
+
+
+    auto InterruptHandler = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+
+    };
+
+    // Helper function to create a thread
+    auto CreateThread = [=](auto&& SupersampledRender, auto&& SupersampledRayCaster, auto start, auto end, auto height) {
+        auto ORCopy = ObjectRecords;
+        auto DFCopy = DistanceField::Synthesize(ORCopy);
+        auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
+        for (auto i : Range{ ORCopy.size() })
+            ORCopy[i].IlluminationModel = GIMCopy;
+
+        // Custom Interrupt handler
+        auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+
+        };
+        // Render each pixel
+        for (auto y : Range{ height })
+            for (auto x = start; x < end; x++) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, SupersampledRayCaster(y, x), Ks, Kt, DFCopy, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+    };
+
+    // Maximize thread usage
+    QThreadPool::globalInstance()->setMaxThreadCount(1.5 * std::thread::hardware_concurrency());
+    //// Performance metrics logging; should disable later
+    std::cout << "Number of threads available: " << std::thread::hardware_concurrency() << std::endl;
+    int MaxThreads = QThreadPool::globalInstance()->maxThreadCount();
+    std::cout << "Number of threads being used: " << (settings.useMultiThreading ? MaxThreads : 1) << std::endl;
+    auto start = std::chrono::steady_clock::now();
+    std::string ThreadType = settings.useMultiThreading ? "Multithreaded: " : "Singlethreaded: ";
+
+
+    auto SupersampledRender = Filter::Frame{ height * Supersampling, width * Supersampling, 3 };
+    auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height * Supersampling, width * Supersampling);
+
+    if (settings.useMultiThreading) {
+        int ThreadWidth = width * Supersampling / MaxThreads;
+        for (int i = 0; i < MaxThreads; i++) {
+            QtConcurrent::run([=, &SupersampledRender]() {
+                auto start = i * ThreadWidth, end = (i + 1) * ThreadWidth;
+                if (i == MaxThreads - 1) end += (width * Supersampling) % MaxThreads;
+                CreateThread(SupersampledRender, RayCaster, start, end, height * Supersampling);
+            });
+        }
+        // wait for threads to finish
+        QThreadPool::globalInstance()->waitForDone();
+    } else {
+        for (auto y : Range{ height * Supersampling })
+            for (auto x : Range{ width * Supersampling }) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+    }
+
+    auto ResampledRender = Filter::Transpose(Filter::HorizontalScale(Filter::Transpose(Filter::HorizontalScale(SupersampledRender.Finalize(), 1. / Supersampling)), 1. / Supersampling));
+    Filter::DisplayPort::Transfer(*this, ResampledRender);
+
+    std::cout << "Done rendering." << std::endl;
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::cout << ThreadType << elapsed_seconds.count() << "s" << std::endl;
+
+    this->update();
+
+}
+
+
+
+
+
+// mandelbulb
+
+
+void Canvas2D::rendermandelbulb( int width, int height) {
+    this->resize(width, height);
+
+    auto Supersampling = settings.useSuperSampling ? settings.numSuperSamples : 1;
+
+    auto iTime = 4200;
+    auto rayOrigin = 1.45f * glm::vec4{ 6.0 * std::sin(iTime * .3), 4.8, 6.0 * std::cos(iTime * .3), 1 };
+    auto focalLength = 2.;
+
+    auto target = glm::vec4{ 0, 0, 0, 1 };
+    auto look = glm::normalize(rayOrigin - target);
+    auto up = glm::vec4{ 0, 1, 0, 0 };
+
+    auto Ka = 1.f;
+    auto Kd = 1.f;
+    auto Ks = 1.f;
+    auto Kt = 1.f;
+    auto Hardness = 2.;
+    auto Lights = std::vector<CS123SceneLightData>{};
+
+    Ray::RelativeStepSizeForOcclusionEstimation = 0.1;
+    Ray::RelativeStepSizeForIntersection = 0.5;
+
+    Lights.resize(3);
+    Lights[0].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[0].color = glm::vec4{ 1., 1., 1., 1. };
+    Lights[0].dir = glm::vec4{ -glm::normalize(glm::vec3{ 1.0, 0.6, 0.5 }), 0 };
+
+    Lights[1].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[1].color = glm::vec4{ 0.5, 0.5, 0.5, 1. };
+    Lights[1].dir = -look;
+
+    using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
+    using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
+    using ObjectRecordType = struct { DistanceFunctionType DistanceFunction; CS123SceneMaterial Material; IlluminationModelType IlluminationModel; };
+
+    auto ObjectRecords = std::vector<ObjectRecordType>{};
+    auto DistanceField = DistanceField::Synthesize(ObjectRecords);
+    auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceField, Hardness);
+
+    ObjectRecords.resize(3);
+
+    // first: height; second: width
+    ObjectRecords[0].DistanceFunction = CreateTree(settings.fractalDepth, 2.,.2,1.,0.4,glm::vec4{ 0., 0., 0., 1 });
+    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.76, 0.69, 0.5, 1 };
+//=======
+//    ObjectRecords[0].DistanceFunction = [](auto&& p) { return static_cast<double>(p.y); };
+//    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.2, 0.2, 0.6, 1 };
+//>>>>>>> e1034dd0cef6c65e284e2d4747e2bde6a2b54f28:prototype/ui/Canvas2D.cpp
+    ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
+    ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    ObjectRecords[0].Material.shininess = 32;
+    ObjectRecords[0].IlluminationModel = GlobalIlluminationModel;
+
+    auto rotate =glm::rotate(0.f,glm::vec3(1.,0.,0.));
+
+
+    ObjectRecords[1].DistanceFunction = CreateMandelbulb(16.,2,glm::vec4{ -1,2,-3,0 },rotate);
+    ObjectRecords[1].Material.cDiffuse = glm::vec4{ 1, 1, 0, 1 };
+    ObjectRecords[1].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[1].Material.cSpecular = glm::vec4{ 0.7, 0.7, 0.7, 1 };
+    ObjectRecords[1].Material.shininess = 8;
+    ObjectRecords[1].IlluminationModel = GlobalIlluminationModel;
+
+
+     rotate =glm::rotate(-1.1f,glm::vec3(1.,0.,0.));
+
+
+    ObjectRecords[2].DistanceFunction = CreateMandelbulb(8.,2,glm::vec4{ 2,2,1,0 },rotate);
+    ObjectRecords[2].Material.cDiffuse = glm::vec4{ 1, 0, 0, 1 };
+    ObjectRecords[2].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[2].Material.shininess = 8;
+    ObjectRecords[2].IlluminationModel = GlobalIlluminationModel;
+
+
+
+    auto InterruptHandler = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+
+
+        auto cosineColor=[]( auto t, auto&& a, auto&& b, auto&& c, auto&& d )
+        {
+
+            auto tmp = glm::cos( 6.28318f*(static_cast<float>(t) * c+d) );
+
+            return a + glm::vec3{ tmp.x*b.x, tmp.y*b.y, tmp.z*b.z };
+        };
+
+
+
+
+        auto palette=[&] (auto t) {
+            return cosineColor( t, glm::vec3(0.5,0.5,0.5),glm::vec3(0.5,0.5,0.5),glm::vec3(0.01,0.01,0.01),glm::vec3(0.00, 0.15, 0.20) );
+        };
+
+                if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[1])
+                    ObjectMaterial.cDiffuse = glm::vec4{2.0f*glm::normalize(glm::vec3{ glm::abs(SurfacePosition) }),1};
+                if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[2])
+                    ObjectMaterial.cDiffuse = glm::vec4{2.0f*glm::normalize(glm::vec3{ glm::abs(SurfacePosition) }),1};
+
+    };
+
+    // Helper function to create a thread
+    auto CreateThread = [=](auto&& SupersampledRender, auto&& SupersampledRayCaster, auto start, auto end, auto height) {
+        auto ORCopy = ObjectRecords;
+        auto DFCopy = DistanceField::Synthesize(ORCopy);
+        auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
+        for (auto i : Range{ ORCopy.size() })
+            ORCopy[i].IlluminationModel = GIMCopy;
+
+        // Custom Interrupt handler
+        auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+
+
+
+            auto cosineColor=[]( auto t, auto&& a, auto&& b, auto&& c, auto&& d )
+            {
+
+                auto tmp = glm::cos( 6.28318f*(static_cast<float>(t) * c+d) );
+
+                return a + glm::vec3{ tmp.x*b.x, tmp.y*b.y, tmp.z*b.z };
+            };
+
+
+
+
+            auto palette=[&] (auto t) {
+                return cosineColor( t, glm::vec3(0.5,0.5,0.5),glm::vec3(0.5,0.5,0.5),glm::vec3(0.01,0.01,0.01),glm::vec3(0.00, 0.15, 0.20) );
+            };
+
+                    if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[1])
+                        ObjectMaterial.cDiffuse = glm::vec4{2.0f*glm::normalize(glm::vec3{ glm::abs(SurfacePosition) }),1};
+
+                    if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[2])
+                        ObjectMaterial.cDiffuse = glm::vec4{2.0f*glm::normalize(glm::vec3{ glm::abs(SurfacePosition) }),1};
+
+
+
+
+        };
+        // Render each pixel
+        for (auto y : Range{ height })
+            for (auto x = start; x < end; x++) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, SupersampledRayCaster(y, x), Ks, Kt, DFCopy, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+    };
+
+    // Maximize thread usage
+    QThreadPool::globalInstance()->setMaxThreadCount(1.5 * std::thread::hardware_concurrency());
+    //// Performance metrics logging; should disable later
+    std::cout << "Number of threads available: " << std::thread::hardware_concurrency() << std::endl;
+    int MaxThreads = QThreadPool::globalInstance()->maxThreadCount();
+    std::cout << "Number of threads being used: " << (settings.useMultiThreading ? MaxThreads : 1) << std::endl;
+    auto start = std::chrono::steady_clock::now();
+    std::string ThreadType = settings.useMultiThreading ? "Multithreaded: " : "Singlethreaded: ";
+
+
+    auto SupersampledRender = Filter::Frame{ height * Supersampling, width * Supersampling, 3 };
+    auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height * Supersampling, width * Supersampling);
+
+    if (settings.useMultiThreading) {
+        int ThreadWidth = width * Supersampling / MaxThreads;
+        for (int i = 0; i < MaxThreads; i++) {
+            QtConcurrent::run([=, &SupersampledRender]() {
+                auto start = i * ThreadWidth, end = (i + 1) * ThreadWidth;
+                if (i == MaxThreads - 1) end += (width * Supersampling) % MaxThreads;
+                CreateThread(SupersampledRender, RayCaster, start, end, height * Supersampling);
+            });
+        }
+        // wait for threads to finish
+        QThreadPool::globalInstance()->waitForDone();
+    } else {
+        for (auto y : Range{ height * Supersampling })
+            for (auto x : Range{ width * Supersampling }) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+    }
+
+    auto ResampledRender = Filter::Transpose(Filter::HorizontalScale(Filter::Transpose(Filter::HorizontalScale(SupersampledRender.Finalize(), 1. / Supersampling)), 1. / Supersampling));
+    Filter::DisplayPort::Transfer(*this, ResampledRender);
+
+    std::cout << "Done rendering." << std::endl;
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::cout << ThreadType << elapsed_seconds.count() << "s" << std::endl;
+
+    this->update();
+
+}
+
+
+
+
+
+
+// giant mandelbulb
+//    auto rotate =glm::rotate(0.f,glm::vec3(1.,0.,0.));
+
+
+//    ObjectRecords[1].DistanceFunction = CreateMandelbulb(16.,5,glm::vec4{ -1,2,-3,0 },rotate);
+//    ObjectRecords[1].Material.cDiffuse = glm::vec4{ 1, 1, 0, 1 };
 //    ObjectRecords[1].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
-//    ObjectRecords[1].Material.cSpecular = glm::vec4{ 1, 1, 1, 1 };
-//    ObjectRecords[1].Material.cReflective = glm::vec4{ 1, 1, 1, 1 };
-//    ObjectRecords[1].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
-//    ObjectRecords[1].Material.IsReflective = true;
-//    ObjectRecords[1].Material.IsTransparent = true;
-//    ObjectRecords[1].Material.shininess = 32;
-//    ObjectRecords[1].Material.ior = 2;
+//    ObjectRecords[1].Material.cSpecular = glm::vec4{ 0.7, 0.7, 0.7, 1 };
+//    ObjectRecords[1].Material.shininess = 8;
 //    ObjectRecords[1].IlluminationModel = GlobalIlluminationModel;
 
-//    ObjectRecords[2].DistanceFunction = CreateSphere(glm::vec4{ 2, 0.25, 1.5, 1 }, 1.);
-//    ObjectRecords[2].Material.cDiffuse = glm::vec4{ 1, 0, 0, 1 };
-//    ObjectRecords[2].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
-//    ObjectRecords[2].Material.cSpecular = glm::vec4{ 1, 1, 1, 1 };
-//    ObjectRecords[2].Material.cReflective = glm::vec4{ 0.5, 0.5, 0.5, 1 };
-//    ObjectRecords[2].Material.IsReflective = true;
-//    ObjectRecords[2].Material.shininess = 8;
+
+// tree simple example
+
+void Canvas2D::rendertree( int width, int height) {
+    this->resize(width, height);
+
+    auto Supersampling = settings.useSuperSampling ? settings.numSuperSamples : 1;
+
+
+    auto rayOrigin = glm::vec4{0., 5., 16., 0.};
+    auto focalLength = 2.;
+
+    auto target = glm::vec4{ 0, 0., 0, 1 };
+    auto look = glm::normalize(rayOrigin - target);
+    auto up = glm::vec4{ 0, 1, 0, 0 };
+
+    auto Ka = 1.f;
+    auto Kd = 1.f;
+    auto Ks = 1.f;
+    auto Kt = 1.f;
+    auto Hardness = 2.;
+    auto Lights = std::vector<CS123SceneLightData>{};
+
+    Ray::RelativeStepSizeForOcclusionEstimation = 0.1;
+    Ray::RelativeStepSizeForIntersection = 0.5;
+
+    Lights.resize(2);
+    Lights[0].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[0].color = glm::vec4{ 1., 1., 1., 1. };
+    Lights[0].dir = glm::vec4{ -glm::normalize(glm::vec3{ 1.0, 0.6, 0.5 }), 0 };
+
+    Lights[1].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[1].color = glm::vec4{ 0.25, 0.25, 0.25, 1. };
+    Lights[1].dir = -look;
+
+    using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
+    using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
+    using ObjectRecordType = struct { DistanceFunctionType DistanceFunction; CS123SceneMaterial Material; IlluminationModelType IlluminationModel; };
+
+    auto ObjectRecords = std::vector<ObjectRecordType>{};
+    auto DistanceField = DistanceField::Synthesize(ObjectRecords);
+    auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceField, Hardness);
+
+    ObjectRecords.resize(2);
+
+    ObjectRecords[0].DistanceFunction = CreateTree(10,2.,.2,.4,0.4,glm::vec4{ 0., 0., 0., 1 });
+    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.588, 0.299, 0, 1 };
+    ObjectRecords[0].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[0].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[0].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[1].DistanceFunction = CreateTerrain();
+    ObjectRecords[1].Material.cDiffuse = glm::vec4{ 0.4, 0.4, 0.4, 1 };
+    ObjectRecords[1].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
+
+    ObjectRecords[1].Material.shininess = 32;
+    ObjectRecords[1].IlluminationModel = GlobalIlluminationModel;
+
+
+
+//    ObjectRecords[2].DistanceFunction = [](auto&& p) { return static_cast<double>(p.z)+100; };
+//    ObjectRecords[2].Material.cDiffuse = glm::vec4{ 0., 0., 0., 1 };
+//    ObjectRecords[2].Material.cAmbient = glm::vec4{ 1, 0, 0, 1 };
+//    ObjectRecords[2].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+//    ObjectRecords[2].Material.shininess = 32;
 //    ObjectRecords[2].IlluminationModel = GlobalIlluminationModel;
 
-//    ObjectRecords[3].DistanceFunction = CreateMandelbulb(8.,glm::vec4{ -1,2,-3,0 });
 
-
-//    ObjectRecords[3].Material.cDiffuse = glm::vec4{ 1, 1, 1, 1 };
-//    ObjectRecords[3].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
-//    ObjectRecords[3].Material.cSpecular = glm::vec4{ 0, 0, 0, 1 };
-//    ObjectRecords[3].Material.shininess = 1;
-//    ObjectRecords[3].IlluminationModel = GlobalIlluminationModel;
 
 
     auto InterruptHandler = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
@@ -442,10 +714,417 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
 
     this->update();
 
-    QString filename = QString("../test%1.jpg").arg(2);
-    this->getImage()->save(filename);
+}
+
+
+
+
+
+// glass ball mandelbulb final
+
+    void Canvas2D::renderepicscene1( int width, int height) {
+        this->resize(width, height);
+
+        auto Supersampling = settings.useSuperSampling ? settings.numSuperSamples : 1;
+
+        auto rayOrigin = glm::vec4{1,3,-3,1 };
+        auto focalLength = 2.;
+
+        auto target = glm::vec4{ 0, 3, 0, 1 };
+        auto look = glm::normalize(rayOrigin - target);
+        auto up = glm::vec4{ 0, 1, 0, 0 };
+
+        auto Ka = 1.f;
+        auto Kd = 1.f;
+        auto Ks = 1.f;
+        auto Kt = 1.f;
+        auto Hardness = 2.;
+        auto Lights = std::vector<CS123SceneLightData>{};
+
+        Ray::RelativeStepSizeForOcclusionEstimation = 0.1;
+        Ray::RelativeStepSizeForIntersection = 0.5;
+
+        Lights.resize(2);
+        Lights[0].type = LightType::LIGHT_DIRECTIONAL;
+        Lights[0].color = glm::vec4{ 0.5, 0.5, 0.5, 1. };
+        Lights[0].dir = glm::vec4{ glm::normalize(glm::vec3{ -1, -1, 1. }), 0 };
+
+//        Lights[1].type = LightType::LIGHT_POINT;
+//        Lights[1].pos = glm::vec4{0.,0.,0.5,1.};
+//        Lights[1].color = glm::vec4{ 1., 1., 1., 1. };
+
+
+        Lights[1].type = LightType::LIGHT_DIRECTIONAL;
+        Lights[1].color = glm::vec4{ .5, .5, .5, 1. };
+        Lights[1].dir = -look;
+
+
+
+        using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
+        using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
+        using ObjectRecordType = struct { DistanceFunctionType DistanceFunction; CS123SceneMaterial Material; IlluminationModelType IlluminationModel; };
+
+        auto ObjectRecords = std::vector<ObjectRecordType>{};
+        auto DistanceField = DistanceField::Synthesize(ObjectRecords);
+        auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceField, Hardness);
+
+        auto ShadowRecords = std::vector<ObjectRecordType>{};
+        auto DistanceShadow = DistanceField::Synthesize(ShadowRecords);
+        ShadowRecords.resize(1);
+
+        ObjectRecords.resize(3);
+
+         auto rotate =glm::rotate(-1.1f,glm::vec3(1.,0.,0.));
+
+
+        ObjectRecords[0].DistanceFunction = CreateMandelbulb(16.,2,glm::vec4{ 0,3,4,0 },rotate);
+        ObjectRecords[0].Material.cDiffuse = glm::vec4{ 1, 0, 0, 1 };
+        ObjectRecords[0].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+        ObjectRecords[0].Material.shininess = 8;
+        ObjectRecords[0].IlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceShadow, Hardness);
+
+        ShadowRecords[0]=ObjectRecords[0];
+
+        ObjectRecords[1].DistanceFunction = CreateSphere(glm::vec4{ 0, 3, 0, 1 }, 0.7);
+        ObjectRecords[1].Material.cDiffuse = glm::vec4{ 0, 0, 0, 1 };
+        ObjectRecords[1].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+        ObjectRecords[1].Material.cSpecular = glm::vec4{ 1, 1, 1, 1 };
+        ObjectRecords[1].Material.cReflective = glm::vec4{ 1, 1, 1, 1 };
+        ObjectRecords[1].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+        ObjectRecords[1].Material.IsReflective = true;
+        ObjectRecords[1].Material.IsTransparent = true;
+        ObjectRecords[1].Material.shininess = 32;
+        ObjectRecords[1].Material.ior = 1.5;
+        ObjectRecords[1].IlluminationModel = GlobalIlluminationModel;
+
+        ObjectRecords[2].DistanceFunction = CreateTerrain();
+        ObjectRecords[2].Material.cDiffuse = glm::vec4{ 0.4, 0.95, 0.4, 1 };
+        ObjectRecords[2].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
+        ObjectRecords[2].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+        ObjectRecords[2].Material.shininess = 32;
+        ObjectRecords[2].IlluminationModel = GlobalIlluminationModel;
+
+
+
+        auto InterruptHandler = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+
+
+            auto cosineColor=[]( auto t, auto&& a, auto&& b, auto&& c, auto&& d )
+            {
+
+                auto tmp = glm::cos( 6.28318f*(static_cast<float>(t) * c+d) );
+
+                return a + glm::vec3{ tmp.x*b.x, tmp.y*b.y, tmp.z*b.z };
+            };
+
+
+
+
+            auto palette=[&] (auto t) {
+                return cosineColor( t, glm::vec3(0.5,0.5,0.5),glm::vec3(0.5,0.5,0.5),glm::vec3(0.01,0.01,0.01),glm::vec3(0.00, 0.15, 0.20) );
+            };
+
+                    if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[0])
+                        ObjectMaterial.cDiffuse = glm::vec4{2.0f*glm::normalize(glm::vec3{ glm::abs(SurfacePosition) }),1};
+
+
+        };
+
+        // Helper function to create a thread
+        auto CreateThread = [=](auto&& SupersampledRender, auto&& SupersampledRayCaster, auto start, auto end, auto height) {
+            auto ORCopy = ObjectRecords;
+
+auto SRCopy = ShadowRecords;
+auto DSCopy = DistanceField::Synthesize(SRCopy);
+
+
+            auto DFCopy = DistanceField::Synthesize(ORCopy);
+            auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
+            for (auto i : Range{ ORCopy.size() })
+                ORCopy[i].IlluminationModel = GIMCopy;
+
+            ORCopy[0].IlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DSCopy, Hardness);
+            SRCopy[0] = ORCopy[0];
+
+            // Custom Interrupt handler
+            auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+
+
+
+                auto cosineColor=[]( auto t, auto&& a, auto&& b, auto&& c, auto&& d )
+                {
+
+                    auto tmp = glm::cos( 6.28318f*(static_cast<float>(t) * c+d) );
+
+                    return a + glm::vec3{ tmp.x*b.x, tmp.y*b.y, tmp.z*b.z };
+                };
+
+
+
+
+                auto palette=[&] (auto t) {
+                    return cosineColor( t, glm::vec3(0.5,0.5,0.5),glm::vec3(0.5,0.5,0.5),glm::vec3(0.01,0.01,0.01),glm::vec3(0.00, 0.15, 0.20) );
+                };
+
+                        if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[0])
+                            ObjectMaterial.cDiffuse = glm::vec4{2.0f*glm::normalize(glm::vec3{ glm::abs(SurfacePosition) }),1};
+
+
+
+
+
+
+            };
+            // Render each pixel
+            for (auto y : Range{ height })
+                for (auto x = start; x < end; x++) {
+                    auto AccumulatedIntensity = Ray::March(rayOrigin, SupersampledRayCaster(y, x), Ks, Kt, DFCopy, InterruptHandler, 1);
+                    SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                    SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                    SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+                }
+        };
+
+        // Maximize thread usage
+        QThreadPool::globalInstance()->setMaxThreadCount(1.5 * std::thread::hardware_concurrency());
+        //// Performance metrics logging; should disable later
+        std::cout << "Number of threads available: " << std::thread::hardware_concurrency() << std::endl;
+        int MaxThreads = QThreadPool::globalInstance()->maxThreadCount();
+        std::cout << "Number of threads being used: " << (settings.useMultiThreading ? MaxThreads : 1) << std::endl;
+        auto start = std::chrono::steady_clock::now();
+        std::string ThreadType = settings.useMultiThreading ? "Multithreaded: " : "Singlethreaded: ";
+
+
+        auto SupersampledRender = Filter::Frame{ height * Supersampling, width * Supersampling, 3 };
+        auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height * Supersampling, width * Supersampling);
+
+        if (settings.useMultiThreading) {
+            int ThreadWidth = width * Supersampling / MaxThreads;
+            for (int i = 0; i < MaxThreads; i++) {
+                QtConcurrent::run([=, &SupersampledRender]() {
+                    auto start = i * ThreadWidth, end = (i + 1) * ThreadWidth;
+                    if (i == MaxThreads - 1) end += (width * Supersampling) % MaxThreads;
+                    CreateThread(SupersampledRender, RayCaster, start, end, height * Supersampling);
+                });
+            }
+            // wait for threads to finish
+            QThreadPool::globalInstance()->waitForDone();
+        } else {
+            for (auto y : Range{ height * Supersampling })
+                for (auto x : Range{ width * Supersampling }) {
+                    auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, InterruptHandler, 1);
+                    SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                    SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                    SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+                }
+        }
+
+        auto ResampledRender = Filter::Transpose(Filter::HorizontalScale(Filter::Transpose(Filter::HorizontalScale(SupersampledRender.Finalize(), 1. / Supersampling)), 1. / Supersampling));
+        Filter::DisplayPort::Transfer(*this, ResampledRender);
+
+        std::cout << "Done rendering." << std::endl;
+
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        std::cout << ThreadType << elapsed_seconds.count() << "s" << std::endl;
+
+        this->update();
+
+    }
+
+
+
+
+
+
+
+void Canvas2D::renderepicscene2(int width, int height) {
+    this->resize(width, height);
+
+    auto Supersampling = settings.useSuperSampling ? settings.numSuperSamples : 1;
+
+
+    auto rayOrigin = glm::vec4{6., 4., 16., 0.};
+    auto focalLength = 2.;
+
+    auto target = glm::vec4{ -2, 0., 0, 1 };
+    auto look = glm::normalize(rayOrigin - target);
+    auto up = glm::vec4{ 0, 1, 0, 0 };
+
+    auto Ka = 1.f;
+    auto Kd = 1.f;
+    auto Ks = 1.f;
+    auto Kt = 1.f;
+    auto Hardness = 2.;
+    auto Lights = std::vector<CS123SceneLightData>{};
+
+    Ray::RelativeStepSizeForOcclusionEstimation = 0.1;
+    Ray::RelativeStepSizeForIntersection = 0.5;
+
+    Lights.resize(2);
+    Lights[0].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[0].color = glm::vec4{ 1., 1., 1., 1. };
+    Lights[0].dir = glm::vec4{ -glm::normalize(glm::vec3{ 1.0, 0.6, 0.5 }), 0 };
+
+    Lights[1].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[1].color = glm::vec4{ 0.25, 0.25, 0.25, 1. };
+    Lights[1].dir = -look;
+
+    using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
+    using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
+    using ObjectRecordType = struct { DistanceFunctionType DistanceFunction; CS123SceneMaterial Material; IlluminationModelType IlluminationModel; };
+
+    auto ObjectRecords = std::vector<ObjectRecordType>{};
+    auto DistanceField = DistanceField::Synthesize(ObjectRecords);
+    auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceField, Hardness);
+
+
+    ObjectRecords.resize(5);
+
+    float rx = cos(1);
+    float ry = sin(1);
+    //0.8
+    ObjectRecords[0].DistanceFunction = CreateTree(12,2.,.3,rx,ry,glm::vec4{ 0, 0.,0, 1 });
+    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[0].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[1].Material.cDiffuse = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[1].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[0].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[0].Material.cReflective = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[0].Material.IsReflective = true;
+    ObjectRecords[0].Material.IsTransparent = true;
+    ObjectRecords[0].Material.shininess = 32;
+    ObjectRecords[0].Material.ior = 1.5;
+    ObjectRecords[0].IlluminationModel = GlobalIlluminationModel;
+
+
+
+    ObjectRecords[2].DistanceFunction = CreateTree(9,2.,.3,0.8,0.6,glm::vec4{ -17, 0.,-7, 1 });
+    ObjectRecords[2].Material.cDiffuse = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[2].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[2].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[2].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[2].Material.cReflective = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[2].Material.IsReflective = true;
+    ObjectRecords[2].Material.IsTransparent = true;
+    ObjectRecords[2].Material.shininess = 32;
+    ObjectRecords[2].Material.ior = 1.5;
+    ObjectRecords[2].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[3].DistanceFunction = CreateTree(10,6.,.5,0.8,0.6,glm::vec4{ -28, 0.,-30, 1 });
+    ObjectRecords[3].Material.cDiffuse = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[3].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[3].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[3].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[3].Material.cReflective = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[3].Material.IsReflective = true;
+    ObjectRecords[3].Material.IsTransparent = true;
+    ObjectRecords[3].Material.shininess = 32;
+    ObjectRecords[3].Material.ior = 1.5;
+    ObjectRecords[3].IlluminationModel = GlobalIlluminationModel;
+
+
+    ObjectRecords[1].DistanceFunction = CreateTerrain();
+    ObjectRecords[1].Material.cDiffuse = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[1].Material.cAmbient = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[1].Material.shininess = 32;
+    ObjectRecords[1].IlluminationModel = GlobalIlluminationModel;
+
+
+
+    ObjectRecords[4].DistanceFunction = [](auto&& p) { return static_cast<double>(p.z)+100; };
+    ObjectRecords[4].Material.cDiffuse = glm::vec4{ 0., 0., 0., 1 };
+    ObjectRecords[4].Material.cAmbient = glm::vec4{ 0.5, 0.83, 1, 1  };
+    ObjectRecords[4].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    ObjectRecords[4].Material.shininess = 32;
+    ObjectRecords[4].IlluminationModel = GlobalIlluminationModel;
+
+
+
+
+
+    auto InterruptHandler = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+        //if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[ObjectRecords.size() - 1])
+          //  ObjectMaterial.cDiffuse = SurfaceNormal;
+    };
+
+    // Helper function to create a thread
+    auto CreateThread = [=](auto&& SupersampledRender, auto&& SupersampledRayCaster, auto start, auto end, auto height) {
+        auto ORCopy = ObjectRecords;
+        auto DFCopy = DistanceField::Synthesize(ORCopy);
+        auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
+        for (auto i : Range{ ORCopy.size() })
+            ORCopy[i].IlluminationModel = GIMCopy;
+        //ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, 25 * Hardness);
+        // Custom Interrupt handler
+        auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+           // if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[ORCopy.size() - 1])
+               // ObjectMaterial.cDiffuse = SurfaceNormal;
+        };
+        // Render each pixel
+        for (auto y : Range{ height }){
+
+            std::cout <<y <<" "<< height<< std::endl;
+            for (auto x = start; x < end; x++) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, SupersampledRayCaster(y, x), Ks, Kt, DFCopy, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+        }
+    };
+
+    // Maximize thread usage
+    QThreadPool::globalInstance()->setMaxThreadCount(1.5 * std::thread::hardware_concurrency());
+    //// Performance metrics logging; should disable later
+    std::cout << "Number of threads available: " << std::thread::hardware_concurrency() << std::endl;
+    int MaxThreads = QThreadPool::globalInstance()->maxThreadCount();
+    std::cout << "Number of threads being used: " << (settings.useMultiThreading ? MaxThreads : 1) << std::endl;
+    auto start = std::chrono::steady_clock::now();
+    std::string ThreadType = settings.useMultiThreading ? "Multithreaded: " : "Singlethreaded: ";
+
+
+    auto SupersampledRender = Filter::Frame{ height * Supersampling, width * Supersampling, 3 };
+    auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height * Supersampling, width * Supersampling);
+
+    if (settings.useMultiThreading) {
+        int ThreadWidth = width * Supersampling / MaxThreads;
+        for (int i = 0; i < MaxThreads; i++) {
+            QtConcurrent::run([=, &SupersampledRender]() {
+                auto start = i * ThreadWidth, end = (i + 1) * ThreadWidth;
+                if (i == MaxThreads - 1) end += (width * Supersampling) % MaxThreads;
+                CreateThread(SupersampledRender, RayCaster, start, end, height * Supersampling);
+            });
+        }
+        // wait for threads to finish
+        QThreadPool::globalInstance()->waitForDone();
+    } else {
+        for (auto y : Range{ height * Supersampling })
+            for (auto x : Range{ width * Supersampling }) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+    }
+
+    auto ResampledRender = Filter::Transpose(Filter::HorizontalScale(Filter::Transpose(Filter::HorizontalScale(SupersampledRender.Finalize(), 1. / Supersampling)), 1. / Supersampling));
+    Filter::DisplayPort::Transfer(*this, ResampledRender);
+
+    std::cout << "Done rendering." << std::endl;
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::cout << ThreadType << elapsed_seconds.count() << "s" << std::endl;
+
+    this->update();
 
 }
+
+
+
+
 
 void Canvas2D::cancelRender() {
     // TODO: cancel the raytracer (optional)
