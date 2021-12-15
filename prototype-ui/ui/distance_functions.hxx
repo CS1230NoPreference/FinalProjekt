@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/gtc/noise.hpp>
+#include "Settings.h"
 #include "../RayMarching.hxx"
 
 
@@ -65,14 +66,15 @@ constexpr auto CreateTerrain=[](){
             auto noise = glm::perlin(0.5f * p.xz()) + 0.5 * glm::perlin(0.75f * p.xz());
             noise /= 1.5;
             // ridges or no?
-            // noise = glm::round(noise * 6) / 6.f);
+//            noise = glm::round(noise * 8) / 8.f;
+            noise = 1.f / (1 + std::exp(-(2 * noise - 1)));
             return static_cast<double>(p.y - noise);
         }
     };
 
 };
 
-constexpr auto CreateTree=[](auto depth,auto height,auto width, auto rxy,auto rzx,auto&& Center){
+constexpr auto CreateTree=[](auto depth,auto height,auto width, auto rxy,auto rzx, auto&& Center){
 
 
 
@@ -99,7 +101,7 @@ constexpr auto CreateTree=[](auto depth,auto height,auto width, auto rxy,auto rz
         float pi =3.14159;
         //pos.xz *= 1.;
         glm::vec2 rl = glm::vec2(width,height);
-        //leaf=0;
+//        leaf=0;
         for (int i = 1; i <depth; i++) {
             l = std::min(l,ln(pos,glm::vec4(0),glm::vec4(0,rl.y,0,0),rl.x));
             pos.y -= rl.y;
@@ -113,9 +115,9 @@ constexpr auto CreateTree=[](auto depth,auto height,auto width, auto rxy,auto rz
 
             rl *= (.7+0.015*float(i));
 
-            if( glm::length(pos)-0.15*sqrt(rl.x) <l && i>10){
-                //leaf=1;
-            }
+//            if( glm::length(pos)-0.15*sqrt(rl.x) <l && i> settings.fractalDepth - 4){
+//                leaf=1;
+//            }
 
             l=std::min(l,glm::length(pos)-0.15*sqrt(rl.x));
         }

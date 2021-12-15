@@ -100,8 +100,8 @@ struct Settings {
     bool useSceneviewScene;
     int sceneType;              // Selected shape type
     int fractalDepth;
-    int fractalWidth;
-    int fractalHeight;
+    float fractalWidth;
+    float fractalHeight;
     int mbDepth;
 //    bool useLighting;           // Enable default lighting
 //    bool drawWireframe;         // Draw wireframe only

@@ -199,6 +199,10 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     if( settings.sceneType == SceneType::EPIC_SCENE_2){
            this->renderepicscene2(width, height);
     }
+
+    if (settings.sceneType == SceneType::EPIC_SCENE_3) {
+        this->renderepicscene3(width, height);
+    }
 }
 
 
@@ -403,10 +407,6 @@ void Canvas2D::rendermandelbulb( int width, int height) {
     // first: height; second: width
     ObjectRecords[0].DistanceFunction = CreateTree(settings.fractalDepth, 2.,.2,1.,0.4,glm::vec4{ 0., 0., 0., 1 });
     ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.76, 0.69, 0.5, 1 };
-//=======
-//    ObjectRecords[0].DistanceFunction = [](auto&& p) { return static_cast<double>(p.y); };
-//    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.2, 0.2, 0.6, 1 };
-//>>>>>>> e1034dd0cef6c65e284e2d4747e2bde6a2b54f28:prototype/ui/Canvas2D.cpp
     ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
     ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
     ObjectRecords[0].Material.shininess = 32;
@@ -615,7 +615,7 @@ void Canvas2D::rendertree( int width, int height) {
 
     ObjectRecords.resize(2);
 
-    ObjectRecords[0].DistanceFunction = CreateTree(10,2.,.2,.4,0.4,glm::vec4{ 0., 0., 0., 1 });
+    ObjectRecords[0].DistanceFunction = CreateTree(settings.fractalDepth, settings.fractalHeight, settings.fractalWidth, std::cos(1),std::sin(1),glm::vec4{ 0., 0., 0., 1 });
     ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.588, 0.299, 0, 1 };
     ObjectRecords[0].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
     ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
@@ -1120,6 +1120,238 @@ void Canvas2D::renderepicscene2(int width, int height) {
 
     this->update();
 
+}
+
+
+void Canvas2D::renderepicscene3(int width, int height) {
+    this->resize(width, height);
+
+    auto Supersampling = settings.useSuperSampling ? settings.numSuperSamples : 1;
+
+
+    auto rayOrigin = glm::vec4{0., 8., 17.5, 0.};
+    auto focalLength = 2.;
+
+    auto target = glm::vec4{ 0, 0., 0, 1 };
+    auto look = glm::normalize(rayOrigin - target);
+    auto up = glm::vec4{ 0, 1, 0, 0 };
+
+    auto Ka = 1.f;
+    auto Kd = 1.f;
+    auto Ks = 1.f;
+    auto Kt = 1.f;
+    auto Hardness = 2.;
+    auto Lights = std::vector<CS123SceneLightData>{};
+
+    Ray::RelativeStepSizeForOcclusionEstimation = 0.1;
+    Ray::RelativeStepSizeForIntersection = 0.5;
+
+    Lights.resize(2);
+    Lights[0].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[0].color = glm::vec4{ 1., 1., 1., 1. };
+    Lights[0].dir = glm::vec4{ -glm::normalize(glm::vec3{ 1.0, 0.6, 0.5 }), 0 };
+
+    Lights[1].type = LightType::LIGHT_DIRECTIONAL;
+    Lights[1].color = glm::vec4{ 0.25, 0.25, 0.25, 1. };
+    Lights[1].dir = -look;
+
+    using DistanceFunctionType = std::function<auto(const glm::vec4&)->double>;
+    using IlluminationModelType = std::function<auto(const glm::vec4&, const glm::vec4&, const glm::vec4&, const CS123SceneMaterial&)->glm::vec4>;
+    using ObjectRecordType = struct { DistanceFunctionType DistanceFunction; CS123SceneMaterial Material; IlluminationModelType IlluminationModel; };
+
+    auto ObjectRecords = std::vector<ObjectRecordType>{};
+    auto DistanceField = DistanceField::Synthesize(ObjectRecords);
+    auto GlobalIlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DistanceField, Hardness);
+
+    ObjectRecords.resize(13);
+
+    ObjectRecords[0].DistanceFunction = CreateTerrain();
+    ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.457, 0.16, 0.05, 1 };
+    ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
+    ObjectRecords[0].Material.shininess = 32;
+    ObjectRecords[0].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[1].DistanceFunction = [](auto&& p) { return static_cast<double>(p.z)+50; };
+    ObjectRecords[1].Material.cDiffuse = glm::vec4{ 0., 0., 0., 1 };
+    ObjectRecords[1].Material.cAmbient = glm::vec4{ 0.05, 0.05, 0.05, 1  };
+    ObjectRecords[1].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };
+    ObjectRecords[1].Material.shininess = 32;
+    ObjectRecords[1].IlluminationModel = GlobalIlluminationModel;
+
+
+    float rx = cos(1);
+    float ry = sin(1);
+    ObjectRecords[2].DistanceFunction = CreateTree(settings.fractalDepth, settings.fractalHeight, settings.fractalWidth, rx, ry, glm::vec4{ 1., 0., 2., 1 });
+    ObjectRecords[2].Material.cDiffuse = glm::vec4{ 0.588, 0.299, 0, 1 };
+    ObjectRecords[2].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[2].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[2].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[2].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[3].DistanceFunction = CreateTree(settings.fractalDepth, 0.6 * settings.fractalHeight, 0.8 * settings.fractalWidth, rx, ry, glm::vec4{ 6., 0., 8.5, 1 });
+    ObjectRecords[3].Material.cDiffuse = glm::vec4{ 0., 0.299, 0, 1 };
+    ObjectRecords[3].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[3].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[3].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[3].IlluminationModel = GlobalIlluminationModel;
+
+    rx = sin(1);
+    ry = cos(1);
+    ObjectRecords[4].DistanceFunction = CreateTree(settings.fractalDepth, 1.3 * settings.fractalHeight, 1.2 * settings.fractalWidth, rx, ry, glm::vec4{ 9.5, 0., -8., 1 });
+    ObjectRecords[4].Material.cDiffuse = glm::vec4{ 0.588, 0.299, 0, 1 };
+    ObjectRecords[4].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[4].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[4].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[4].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[5].DistanceFunction = CreateTree(settings.fractalDepth, 0.8 * settings.fractalHeight, settings.fractalWidth, rx, ry, glm::vec4{ -5., 0., 4., 1 });
+    ObjectRecords[5].Material.cDiffuse = glm::vec4{ 0.588, 0.448, 0.05, 1 };
+    ObjectRecords[5].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[5].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[5].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[5].IlluminationModel = GlobalIlluminationModel;
+
+    rx = cos(1);
+    ry = sin(1);
+    ObjectRecords[6].DistanceFunction = CreateTree(settings.fractalDepth, 1.2 * settings.fractalHeight, 1.25 * settings.fractalWidth, rx, ry, glm::vec4{ -8., 0., -8., 1 });
+    ObjectRecords[6].Material.cDiffuse = glm::vec4{ 0.376, 0.666, 0.251, 1 };
+    ObjectRecords[6].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[6].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[6].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[6].IlluminationModel = GlobalIlluminationModel;
+
+
+    ObjectRecords[7].DistanceFunction = CreateTree(settings.fractalDepth, 0.55 * settings.fractalHeight, 0.9 * settings.fractalWidth, rx, ry, glm::vec4{ 2., 0., 10.2, 1 });
+    ObjectRecords[7].Material.cDiffuse = glm::vec4{ 0.604, 0.632, 0.05, 1 };
+    ObjectRecords[7].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[7].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[7].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[7].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[8].DistanceFunction = CreateTree(settings.fractalDepth, 0.8 * settings.fractalHeight, settings.fractalWidth, rx, ry, glm::vec4{ 0., 0., 4., 1 });
+    ObjectRecords[8].Material.cDiffuse = glm::vec4{ 0.625, 0.112, 0.05, 1 };
+    ObjectRecords[8].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[8].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[8].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[8].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[9].DistanceFunction = CreateTree(settings.fractalDepth, 0.8 * settings.fractalHeight, settings.fractalWidth, rx, ry, glm::vec4{ 5, 0., 4.8, 1 });
+    ObjectRecords[9].Material.cDiffuse = glm::vec4{ 0.949, 0.957, 0.283, 1 };
+    ObjectRecords[9].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[9].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[9].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[9].IlluminationModel = GlobalIlluminationModel;
+
+    rx = sin(1);
+    ry = cos(1);
+
+    ObjectRecords[10].DistanceFunction = CreateTree(settings.fractalDepth, 1.3 * settings.fractalHeight, 1.2 * settings.fractalWidth, rx, ry, glm::vec4{ -1.7, 0., -8., 1 });
+    ObjectRecords[10].Material.cDiffuse = glm::vec4{ 0.849, 0.857, 0.563, 1 };
+    ObjectRecords[10].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[10].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[10].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[10].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[11].DistanceFunction = CreateTree(settings.fractalDepth, 0.7 * settings.fractalHeight, 0.95 * settings.fractalWidth, rx, ry, glm::vec4{ -2., 0., 8, 1 });
+    ObjectRecords[11].Material.cDiffuse = glm::vec4{ 0., 0.299, 0, 1 };
+    ObjectRecords[11].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[11].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[11].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[11].IlluminationModel = GlobalIlluminationModel;
+
+    ObjectRecords[12].DistanceFunction = CreateTree(settings.fractalDepth, 0.7 * settings.fractalHeight, 0.95 * settings.fractalWidth, rx, ry, glm::vec4{ -5., 0., 9.5, 1 });
+    ObjectRecords[12].Material.cDiffuse = glm::vec4{ 0.376, 0.666, 0.251, 1 };
+    ObjectRecords[12].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+    ObjectRecords[12].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+    ObjectRecords[12].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+    ObjectRecords[12].IlluminationModel = GlobalIlluminationModel;
+
+//    ObjectRecords[12].DistanceFunction = CreateTree(settings.fractalDepth, 1.3 * settings.fractalHeight, 1.2 * settings.fractalWidth, rx, ry, glm::vec4{ 4., 0., -8., 1 });
+//    ObjectRecords[12].Material.cDiffuse = glm::vec4{ 0.249, 0.557, 0.233, 1 };
+//    ObjectRecords[12].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+//    ObjectRecords[12].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+//    ObjectRecords[12].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+//    ObjectRecords[12].IlluminationModel = GlobalIlluminationModel;
+
+//    ObjectRecords[13].DistanceFunction = CreateTree(settings.fractalDepth + 2, 1.3 * settings.fractalHeight, 1.2 * settings.fractalWidth, rx, ry, glm::vec4{ -4., 0., -8., 1 });
+//    ObjectRecords[13].Material.cDiffuse = glm::vec4{ 0.588, 0.249, 0.089, 1 };
+//    ObjectRecords[13].Material.cAmbient = glm::vec4{ 0, 0, 0, 1 };
+//    ObjectRecords[13].Material.cSpecular = glm::vec4{ 0.2, 0.2, 0.2, 1 };
+//    ObjectRecords[13].Material.cTransparent = glm::vec4{ 1, 1, 1, 1 };
+//    ObjectRecords[13].IlluminationModel = GlobalIlluminationModel;
+
+    auto InterruptHandler = [&](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+        //if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ObjectRecords[ObjectRecords.size() - 1])
+          //  ObjectMaterial.cDiffuse = SurfaceNormal;
+    };
+
+    // Helper function to create a thread
+    auto CreateThread = [=](auto&& SupersampledRender, auto&& SupersampledRayCaster, auto start, auto end, auto height) {
+        auto ORCopy = ObjectRecords;
+        auto DFCopy = DistanceField::Synthesize(ORCopy);
+        auto GIMCopy = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, Hardness);
+        for (auto i : Range{ ORCopy.size() })
+            ORCopy[i].IlluminationModel = GIMCopy;
+        //ORCopy[ORCopy.size() - 1].IlluminationModel = Illuminations::ConfigureIlluminationModel(Lights, Ka, Kd, Ks, DFCopy, 25 * Hardness);
+        // Custom Interrupt handler
+        auto InterruptHandler = [&ORCopy](auto&& SurfacePosition, auto&& SurfaceNormal, auto&& ObjectRecord) {
+           // if (auto& [_, ObjectMaterial, __] = ObjectRecord; &ObjectRecord == &ORCopy[ORCopy.size() - 1])
+               // ObjectMaterial.cDiffuse = SurfaceNormal;
+        };
+        // Render each pixel
+        for (auto y : Range{ height })
+            for (auto x = start; x < end; x++) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, SupersampledRayCaster(y, x), Ks, Kt, DFCopy, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+    };
+
+    // Maximize thread usage
+    QThreadPool::globalInstance()->setMaxThreadCount(1.5 * std::thread::hardware_concurrency());
+    //// Performance metrics logging; should disable later
+    std::cout << "Number of threads available: " << std::thread::hardware_concurrency() << std::endl;
+    int MaxThreads = QThreadPool::globalInstance()->maxThreadCount();
+    std::cout << "Number of threads being used: " << (settings.useMultiThreading ? MaxThreads : 1) << std::endl;
+    auto start = std::chrono::steady_clock::now();
+    std::string ThreadType = settings.useMultiThreading ? "Multithreaded: " : "Singlethreaded: ";
+
+
+    auto SupersampledRender = Filter::Frame{ height * Supersampling, width * Supersampling, 3 };
+    auto RayCaster = ViewPlane::ConfigureRayCaster(look, up, focalLength, height * Supersampling, width * Supersampling);
+
+    if (settings.useMultiThreading) {
+        int ThreadWidth = width * Supersampling / MaxThreads;
+        for (int i = 0; i < MaxThreads; i++) {
+            QtConcurrent::run([=, &SupersampledRender]() {
+                auto start = i * ThreadWidth, end = (i + 1) * ThreadWidth;
+                if (i == MaxThreads - 1) end += (width * Supersampling) % MaxThreads;
+                CreateThread(SupersampledRender, RayCaster, start, end, height * Supersampling);
+            });
+        }
+        // wait for threads to finish
+        QThreadPool::globalInstance()->waitForDone();
+    } else {
+        for (auto y : Range{ height * Supersampling })
+            for (auto x : Range{ width * Supersampling }) {
+                auto AccumulatedIntensity = Ray::March(rayOrigin, RayCaster(y, x), Ks, Kt, DistanceField, InterruptHandler, 1);
+                SupersampledRender[0][y][x] = AccumulatedIntensity.x;
+                SupersampledRender[1][y][x] = AccumulatedIntensity.y;
+                SupersampledRender[2][y][x] = AccumulatedIntensity.z;
+            }
+    }
+
+    auto ResampledRender = Filter::Transpose(Filter::HorizontalScale(Filter::Transpose(Filter::HorizontalScale(SupersampledRender.Finalize(), 1. / Supersampling)), 1. / Supersampling));
+    Filter::DisplayPort::Transfer(*this, ResampledRender);
+
+    std::cout << "Done rendering." << std::endl;
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::cout << ThreadType << elapsed_seconds.count() << "s" << std::endl;
+
+    this->update();
 }
 
 

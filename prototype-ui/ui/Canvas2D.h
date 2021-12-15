@@ -31,6 +31,7 @@ public:
     void rendermandelbulb( int width, int height);
     void renderepicscene1( int width, int height);
     void renderepicscene2( int width, int height);
+    void renderepicscene3( int width, int height);
 
     // This will be called when the settings have changed
     virtual void settingsChanged();

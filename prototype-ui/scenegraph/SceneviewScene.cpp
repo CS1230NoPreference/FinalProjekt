@@ -111,15 +111,15 @@ void SceneviewScene::settingsChanged() {
     ShapeParameter2 = settings.fractalWidth;
     TessellatedObjects.resize(Objects.size());
 
-    for (auto x : Range{ Objects.size() })
-        if (auto& [Primitive, ObjectTransformation] = Objects[x]; Primitive.type == PrimitiveType::PRIMITIVE_CUBE)
-            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCube(settings.fractalDepth) };
-        else if (Primitive.type == PrimitiveType::PRIMITIVE_CYLINDER)
-            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCylinder(settings.fractalDepth, std::max(settings.fractalWidth, 3)) };
-        else if (Primitive.type == PrimitiveType::PRIMITIVE_CONE)
-            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCone(settings.fractalDepth, std::max(settings.fractalWidth, 3)) };
-        else if (Primitive.type == PrimitiveType::PRIMITIVE_SPHERE)
-            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawSphere(std::max(settings.fractalDepth, 2), std::max(settings.fractalWidth, 3)) };
-        else
-            throw std::runtime_error{ "Unrecognized primitive type detected!" };
+//    for (auto x : Range{ Objects.size() })
+//        if (auto& [Primitive, ObjectTransformation] = Objects[x]; Primitive.type == PrimitiveType::PRIMITIVE_CUBE)
+//            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCube(settings.fractalDepth) };
+//        else if (Primitive.type == PrimitiveType::PRIMITIVE_CYLINDER)
+//            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCylinder(settings.fractalDepth, std::max(settings.fractalWidth, 3)) };
+//        else if (Primitive.type == PrimitiveType::PRIMITIVE_CONE)
+//            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCone(settings.fractalDepth, std::max(settings.fractalWidth, 3)) };
+//        else if (Primitive.type == PrimitiveType::PRIMITIVE_SPHERE)
+//            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawSphere(std::max(settings.fractalDepth, 2), std::max(settings.fractalWidth, 3)) };
+//        else
+//            throw std::runtime_error{ "Unrecognized primitive type detected!" };
 }

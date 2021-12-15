@@ -189,13 +189,13 @@ void MainWindow::dataBind() {
             ui->epicScene2,
             ui->epicScene3))
     BIND(IntBinding::bindSliderAndTextbox(
-        ui->fractalDepthSlider, ui->fractalDepthTextbox, settings.fractalDepth, 5.f, 20.f))
+        ui->fractalDepthSlider, ui->fractalDepthTextbox, settings.fractalDepth, 8.f, 25.f))
+    BIND(FloatBinding::bindSliderAndTextbox(
+        ui->fractalWidthSlider, ui->fractalWidthTextbox, settings.fractalWidth, 0.1f, 0.5f))
+    BIND(FloatBinding::bindSliderAndTextbox(
+        ui->fractalHeightSlider, ui->fractalHeightTextbox, settings.fractalHeight, 1.f, 5.f))
     BIND(IntBinding::bindSliderAndTextbox(
-        ui->fractalWidthSlider, ui->fractalWidthTextbox, settings.fractalWidth, 1.f, 20.f))
-    BIND(IntBinding::bindSliderAndTextbox(
-        ui->fractalHeightSlider, ui->fractalHeightTextbox, settings.fractalHeight, 1.f, 20.f))
-    BIND(IntBinding::bindSliderAndTextbox(
-             ui->mbDepthSlider, ui->mbDepthTextbox, settings.mbDepth, 5.f, 20.f));
+             ui->mbDepthSlider, ui->mbDepthTextbox, settings.mbDepth, 8.f, 25.f));
 //    BIND(BoolBinding::bindCheckbox(ui->useLightingCheckbox, settings.useLighting))
 //    BIND(BoolBinding::bindCheckbox(ui->drawWireframeCheckbox, settings.drawWireframe))
 //    BIND(BoolBinding::bindCheckbox(ui->drawNormalsCheckbox, settings.drawNormals))

@@ -29,9 +29,9 @@ void Settings::loadSettingsOrDefaults() {
 
     // Shapes
     sceneType = s.value("shapeType", MB1_SCENE).toInt();
-    fractalDepth = s.value("fractalDepth", 15).toInt();
-    fractalWidth = s.value("fractalWith", 5).toInt();
-    fractalHeight = s.value("fractalHeight", 5).toInt();
+    fractalDepth = s.value("fractalDepth", 10).toInt();
+    fractalWidth = s.value("fractalWidth", 0.2f).toDouble();
+    fractalHeight = s.value("fractalHeight", 2.f).toInt();
     mbDepth = s.value("mbDepth", 8).toInt();
 //    useLighting = s.value("useLighting", true).toBool();
 //    drawWireframe = s.value("drawWireframe", true).toBool();

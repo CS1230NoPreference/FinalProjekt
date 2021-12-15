@@ -182,16 +182,16 @@ void ShapesScene::settingsChanged() {
     m_shape = std::make_unique<OpenGLShape>();
 
     auto CreateShape = [] {
-        if (settings.sceneType == SceneType::SPHERE_SCENE)
-            return Shape::Spatial::DrawCube(settings.fractalDepth);
-        else if (settings.sceneType == SceneType::MB2_SCENE)
-            return Shape::Spatial::DrawCylinder(settings.fractalDepth, std::max(settings.fractalWidth, 3));
-        else if (settings.sceneType == SceneType::TREE_SCENE)
-            return Shape::Spatial::DrawCone(settings.fractalDepth, std::max(settings.fractalWidth, 3));
-        else
-            return Shape::Spatial::DrawSphere(std::max(settings.fractalDepth, 2), std::max(settings.fractalWidth, 3));
+//        if (settings.sceneType == SceneType::SPHERE_SCENE)
+//            return Shape::Spatial::DrawCube(settings.fractalDepth);
+//        else if (settings.sceneType == SceneType::MB2_SCENE)
+//            return Shape::Spatial::DrawCylinder(settings.fractalDepth, std::max(settings.fractalWidth, 3));
+//        else if (settings.sceneType == SceneType::TREE_SCENE)
+//            return Shape::Spatial::DrawCone(settings.fractalDepth, std::max(settings.fractalWidth, 3));
+//        else
+//            return Shape::Spatial::DrawSphere(std::max(settings.fractalDepth, 2), std::max(settings.fractalWidth, 3));
     };
 
-    m_shape->m_vertexData = Shape::Export(CreateShape());
-    m_shape->initializeOpenGLShapeProperties();
+//    m_shape->m_vertexData = Shape::Export(CreateShape());
+//    m_shape->initializeOpenGLShapeProperties();
 }
