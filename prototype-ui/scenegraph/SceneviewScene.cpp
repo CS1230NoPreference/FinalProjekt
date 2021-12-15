@@ -73,7 +73,7 @@ void SceneviewScene::setGlobalData() {
 
 void SceneviewScene::setSceneUniforms(SupportCanvas3D *context) {
     Camera *camera = context->getCamera();
-    m_phongShader->setUniform("useLighting", settings.useLighting);
+//    m_phongShader->setUniform("useLighting", settings.useLighting);
     m_phongShader->setUniform("useArrowOffsets", false);
     m_phongShader->setUniform("isShapeScene", false);
     m_phongShader->setUniform("p" , camera->getProjectionMatrix2());
@@ -104,22 +104,22 @@ void SceneviewScene::renderGeometry() {
 }
 
 void SceneviewScene::settingsChanged() {
-    if (settings.shapeParameter1 == ShapeParameter1 && settings.shapeParameter2 == ShapeParameter2)
+    if (settings.fractalDepth == ShapeParameter1 && settings.fractalWidth == ShapeParameter2)
         return;
 
-    ShapeParameter1 = settings.shapeParameter1;
-    ShapeParameter2 = settings.shapeParameter2;
+    ShapeParameter1 = settings.fractalDepth;
+    ShapeParameter2 = settings.fractalWidth;
     TessellatedObjects.resize(Objects.size());
 
     for (auto x : Range{ Objects.size() })
         if (auto& [Primitive, ObjectTransformation] = Objects[x]; Primitive.type == PrimitiveType::PRIMITIVE_CUBE)
-            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCube(settings.shapeParameter1) };
+            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCube(settings.fractalDepth) };
         else if (Primitive.type == PrimitiveType::PRIMITIVE_CYLINDER)
-            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCylinder(settings.shapeParameter1, std::max(settings.shapeParameter2, 3)) };
+            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCylinder(settings.fractalDepth, std::max(settings.fractalWidth, 3)) };
         else if (Primitive.type == PrimitiveType::PRIMITIVE_CONE)
-            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCone(settings.shapeParameter1, std::max(settings.shapeParameter2, 3)) };
+            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawCone(settings.fractalDepth, std::max(settings.fractalWidth, 3)) };
         else if (Primitive.type == PrimitiveType::PRIMITIVE_SPHERE)
-            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawSphere(std::max(settings.shapeParameter1, 2), std::max(settings.shapeParameter2, 3)) };
+            TessellatedObjects[x] = std::tuple{ &Primitive.material, ObjectTransformation * Shape::Spatial::DrawSphere(std::max(settings.fractalDepth, 2), std::max(settings.fractalWidth, 3)) };
         else
             throw std::runtime_error{ "Unrecognized primitive type detected!" };
 }

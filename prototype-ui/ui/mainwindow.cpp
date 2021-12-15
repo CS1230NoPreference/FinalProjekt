@@ -48,20 +48,20 @@ MainWindow::MainWindow(QWidget *parent) :
     actions.push_back(ui->dock->toggleViewAction()); \
     actions.back()->setShortcut(QKeySequence(key));
 
-    SETUP_ACTION(brushDock,     "CTRL+1");
-    SETUP_ACTION(filterDock,    "CTRL+2");
-    SETUP_ACTION(shapesDock,    "CTRL+3");
-    SETUP_ACTION(camtransDock,  "CTRL+4");
-    SETUP_ACTION(rayDock,       "CTRL+5");
+//    SETUP_ACTION(brushDock,     "CTRL+1");
+//    SETUP_ACTION(filterDock,    "CTRL+2");
+    SETUP_ACTION(shapesDock,    "CTRL+1");
+//    SETUP_ACTION(camtransDock,  "CTRL+4");
+    SETUP_ACTION(rayDock,       "CTRL+2");
 
     ui->menuToolbars->addActions(actions);
 #undef SETUP_ACTION
 
-    tabifyDockWidget(ui->brushDock, ui->filterDock);
-    tabifyDockWidget(ui->brushDock, ui->shapesDock);
-    tabifyDockWidget(ui->brushDock, ui->camtransDock);
-    tabifyDockWidget(ui->brushDock, ui->rayDock);
-    ui->brushDock->raise();
+//    tabifyDockWidget(ui->brushDock, ui->filterDock);
+//    tabifyDockWidget(ui->brushDock, ui->shapesDock);
+//    tabifyDockWidget(ui->brushDock, ui->camtransDock);
+//    tabifyDockWidget(ui->brushDock, ui->rayDock);
+//    ui->brushDock->raise();
 
     dataBind();
 
@@ -74,34 +74,35 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Make certain radio buttons switch to the 2D canvas when clicked.
     QList<QRadioButton*> a;
-    a += ui->brushTypeLinear;
-    a += ui->brushTypeQuadratic;
-    a += ui->brushTypeSmudge;
-    a += ui->brushTypeConstant;
-    a += ui->brushTypeSpecial1;
-    a += ui->brushTypeSpecial2;
-    a += ui->filterTypeBlur;
-    a += ui->filterTypeEdgeDetect;
-    a += ui->filterTypeRotate;
-    a += ui->filterTypeScale;
-    a += ui->filterTypeSpecial1;
-    a += ui->filterTypeSpecial2;
-    a += ui->filterTypeSpecial3;
-    foreach (QRadioButton *rb, a)
-        connect(rb, SIGNAL(clicked()), this, SLOT(activateCanvas2D()));
+//    a += ui->brushTypeLinear;
+//    a += ui->brushTypeQuadratic;
+//    a += ui->brushTypeSmudge;
+//    a += ui->brushTypeConstant;
+//    a += ui->brushTypeSpecial1;
+//    a += ui->brushTypeSpecial2;
+//    a += ui->filterTypeBlur;
+//    a += ui->filterTypeEdgeDetect;
+//    a += ui->filterTypeRotate;
+//    a += ui->filterTypeScale;
+//    a += ui->filterTypeSpecial1;
+//    a += ui->filterTypeSpecial2;
+//    a += ui->filterTypeSpecial3;
+//    foreach (QRadioButton *rb, a)
+//        connect(rb, SIGNAL(clicked()), this, SLOT(activateCanvas2D()));
 
     a.clear();
-    a += ui->shapeTypeCone;
-    a += ui->shapeTypeCube;
-    a += ui->shapeTypeCylinder;
-    a += ui->shapeTypeTorus;
-    a += ui->shapeTypeSpecial1;
-    a += ui->shapeTypeSpecial2;
+    a += ui->sphereScene;
+    a += ui->treeScene;
+    a += ui->mb1Scene;
+    a += ui->mb2Scene;
+    a += ui->epicScene1;
+    a += ui->epicScene2;
+    a += ui->epicScene3;
     foreach (QRadioButton *rb, a)
         connect(rb, SIGNAL(clicked()), this, SLOT(activateCanvas3D()));
 
     QWidget *widget = ui->tabWidget->currentWidget();
-    ui->tabWidget->setCurrentWidget(ui->tab3D);
+    ui->tabWidget->setCurrentWidget(ui->tab2D);
     show();
     ui->tabWidget->setCurrentWidget(widget);
     show();
@@ -124,120 +125,122 @@ void MainWindow::dataBind() {
     m_bindings.push_back(_b); \
     assert(connect(_b, SIGNAL(dataChanged()), this, SLOT(settingsChanged()))); \
 }
-    QButtonGroup *brushButtonGroup = new QButtonGroup;
     QButtonGroup *shapesButtonGroup = new QButtonGroup;
-    QButtonGroup *filterButtonGroup = new QButtonGroup;
-    m_buttonGroups.push_back(brushButtonGroup);
     m_buttonGroups.push_back(shapesButtonGroup);
-    m_buttonGroups.push_back(filterButtonGroup);
 
-    BIND(ChoiceBinding::bindRadioButtons(
-            brushButtonGroup,
-            NUM_BRUSH_TYPES,
-            settings.brushType,
-            ui->brushTypeConstant,
-            ui->brushTypeLinear,
-            ui->brushTypeQuadratic,
-            ui->brushTypeSmudge,
-            ui->brushTypeSpecial1,
-            ui->brushTypeSpecial2))
+//    BIND(ChoiceBinding::bindRadioButtons(
+//            brushButtonGroup,
+//            NUM_BRUSH_TYPES,
+//            settings.brushType,
+//            ui->brushTypeConstant,
+//            ui->brushTypeLinear,
+//            ui->brushTypeQuadratic,
+//            ui->brushTypeSmudge,
+//            ui->brushTypeSpecial1,
+//            ui->brushTypeSpecial2))
 
-    BIND(IntBinding::bindSliderAndTextbox(
-        ui->brushRadiusSlider, ui->brushRadiusTextbox, settings.brushRadius, 0, 96))
-    BIND(UCharBinding::bindSliderAndTextbox(
-        ui->brushColorSliderRed, ui->brushColorTextboxRed, settings.brushColor.r, 0, 255))
-    BIND(UCharBinding::bindSliderAndTextbox(
-        ui->brushColorSliderGreen, ui->brushColorTextboxGreen, settings.brushColor.g, 0, 255))
-    BIND(UCharBinding::bindSliderAndTextbox(
-        ui->brushColorSliderBlue, ui->brushColorTextboxBlue, settings.brushColor.b, 0, 255))
-    BIND(UCharBinding::bindSliderAndTextbox(
-        ui->brushColorSliderAlpha, ui->brushColorTextboxAlpha, settings.brushColor.a, 0, 255))
-    BIND(BoolBinding::bindCheckbox(ui->brushAlphaBlendingCheckbox, settings.fixAlphaBlending))
+//    BIND(IntBinding::bindSliderAndTextbox(
+//        ui->brushRadiusSlider, ui->brushRadiusTextbox, settings.brushRadius, 0, 96))
+//    BIND(UCharBinding::bindSliderAndTextbox(
+//        ui->brushColorSliderRed, ui->brushColorTextboxRed, settings.brushColor.r, 0, 255))
+//    BIND(UCharBinding::bindSliderAndTextbox(
+//        ui->brushColorSliderGreen, ui->brushColorTextboxGreen, settings.brushColor.g, 0, 255))
+//    BIND(UCharBinding::bindSliderAndTextbox(
+//        ui->brushColorSliderBlue, ui->brushColorTextboxBlue, settings.brushColor.b, 0, 255))
+//    BIND(UCharBinding::bindSliderAndTextbox(
+//        ui->brushColorSliderAlpha, ui->brushColorTextboxAlpha, settings.brushColor.a, 0, 255))
+//    BIND(BoolBinding::bindCheckbox(ui->brushAlphaBlendingCheckbox, settings.fixAlphaBlending))
 
-    // Filter dock
-    BIND(ChoiceBinding::bindRadioButtons(
-            filterButtonGroup,
-            NUM_FILTER_TYPES,
-            settings.filterType,
-            ui->filterTypeEdgeDetect,
-            ui->filterTypeBlur,
-            ui->filterTypeScale,
-            ui->filterTypeRotate,
-            ui->filterTypeSpecial1,
-            ui->filterTypeSpecial2,
-            ui->filterTypeSpecial3))
-    BIND(FloatBinding::bindSliderAndTextbox(
-        ui->edgeDetectSensitivitySlider, ui->edgeDetectSensitivityTextbox, settings.edgeDetectSensitivity,
-            0.f, 1.f))
-    BIND(IntBinding::bindSliderAndTextbox(
-        ui->blurRadiusSlider, ui->blurRadiusTextbox, settings.blurRadius, 1.f, 200.f))
-    BIND(FloatBinding::bindSliderAndTextbox(
-        ui->scaleSliderX, ui->scaleTextboxX, settings.scaleX, 0.1f, 10.f))
-    BIND(FloatBinding::bindSliderAndTextbox(
-        ui->scaleSliderY, ui->scaleTextboxY, settings.scaleY, 0.1f, 10.f))
-    BIND(IntBinding::bindSliderAndTextbox(
-        ui->rotateSlider, ui->rotateAngleEdit, settings.rotateAngle, -360.f, 360.f))
+//    // Filter dock
+//    BIND(ChoiceBinding::bindRadioButtons(
+//            filterButtonGroup,
+//            NUM_FILTER_TYPES,
+//            settings.filterType,
+//            ui->filterTypeEdgeDetect,
+//            ui->filterTypeBlur,
+//            ui->filterTypeScale,
+//            ui->filterTypeRotate,
+//            ui->filterTypeSpecial1,
+//            ui->filterTypeSpecial2,
+//            ui->filterTypeSpecial3))
+//    BIND(FloatBinding::bindSliderAndTextbox(
+//        ui->edgeDetectSensitivitySlider, ui->edgeDetectSensitivityTextbox, settings.edgeDetectSensitivity,
+//            0.f, 1.f))
+//    BIND(IntBinding::bindSliderAndTextbox(
+//        ui->blurRadiusSlider, ui->blurRadiusTextbox, settings.blurRadius, 1.f, 200.f))
+//    BIND(FloatBinding::bindSliderAndTextbox(
+//        ui->scaleSliderX, ui->scaleTextboxX, settings.scaleX, 0.1f, 10.f))
+//    BIND(FloatBinding::bindSliderAndTextbox(
+//        ui->scaleSliderY, ui->scaleTextboxY, settings.scaleY, 0.1f, 10.f))
+//    BIND(IntBinding::bindSliderAndTextbox(
+//        ui->rotateSlider, ui->rotateAngleEdit, settings.rotateAngle, -360.f, 360.f))
 
     // Shapes dock
-    BIND(BoolBinding::bindCheckbox(ui->showSceneviewInstead, settings.useSceneviewScene))
+//    BIND(BoolBinding::bindCheckbox(ui->showSceneviewInstead, settings.useSceneviewScene))
     BIND(ChoiceBinding::bindRadioButtons(
             shapesButtonGroup,
             NUM_SHAPE_TYPES,
             settings.shapeType,
-            ui->shapeTypeCube,
-            ui->shapeTypeCone,
-            ui->shapeTypeSphere,
-            ui->shapeTypeCylinder,
-            ui->shapeTypeTorus,
-            ui->shapeTypeSpecial1,
-            ui->shapeTypeSpecial2))
+            ui->sphereScene,
+            ui->treeScene,
+            ui->mb1Scene,
+            ui->mb2Scene,
+            ui->epicScene1,
+            ui->epicScene2,
+            ui->epicScene3))
     BIND(IntBinding::bindSliderAndTextbox(
-        ui->shapeParameterSlider1, ui->shapeParameterTextbox1, settings.shapeParameter1, 1.f, 100.f))
+        ui->fractalDepthSlider, ui->fractalDepthTextbox, settings.fractalDepth, 5.f, 20.f))
     BIND(IntBinding::bindSliderAndTextbox(
-        ui->shapeParameterSlider2, ui->shapeParameterTextbox2, settings.shapeParameter2, 1.f, 100.f))
-    BIND(FloatBinding::bindSliderAndTextbox(
-        ui->shapeParameterSlider3, ui->shapeParameterTextbox3, settings.shapeParameter3, 1.f, 100.f))
-    BIND(BoolBinding::bindCheckbox(ui->useLightingCheckbox, settings.useLighting))
-    BIND(BoolBinding::bindCheckbox(ui->drawWireframeCheckbox, settings.drawWireframe))
-    BIND(BoolBinding::bindCheckbox(ui->drawNormalsCheckbox, settings.drawNormals))
+        ui->fractalWidthSlider, ui->fractalWidthTextbox, settings.fractalWidth, 1.f, 20.f))
+    BIND(IntBinding::bindSliderAndTextbox(
+        ui->fractalHeightSlider, ui->fractalHeightTextbox, settings.fractalHeight, 1.f, 20.f))
+    BIND(IntBinding::bindSliderAndTextbox(
+             ui->mbDepthSlider, ui->mbDepthTextbox, settings.mbDepth, 5.f, 20.f));
+//    BIND(BoolBinding::bindCheckbox(ui->useLightingCheckbox, settings.useLighting))
+//    BIND(BoolBinding::bindCheckbox(ui->drawWireframeCheckbox, settings.drawWireframe))
+//    BIND(BoolBinding::bindCheckbox(ui->drawNormalsCheckbox, settings.drawNormals))
 
-    // Camtrans dock
-    BIND(BoolBinding::bindCheckbox(ui->cameraOrbitCheckbox, settings.useOrbitCamera))
-    BIND(FloatBinding::bindDial(ui->transX, settings.cameraPosX, -2, 2, true))
-    BIND(FloatBinding::bindDial(ui->transY, settings.cameraPosY, -2, 2, true))
-    BIND(FloatBinding::bindDial(ui->transZ, settings.cameraPosZ, -2, 2, true))
-    BIND(FloatBinding::bindDial(ui->rotU,   settings.cameraRotU, -20, 20, true))
-    BIND(FloatBinding::bindDial(ui->rotV,   settings.cameraRotV, -20, 20, true))
-    BIND(FloatBinding::bindDial(ui->rotW,   settings.cameraRotN, -180, 180, false))
-    BIND(FloatBinding::bindSliderAndTextbox(
-              ui->cameraFovSlider, ui->cameraFovTextbox, settings.cameraFov, 1, 179))
-    BIND(FloatBinding::bindSliderAndTextbox(
-              ui->cameraNearSlider, ui->cameraNearTextbox, settings.cameraNear, 0.1, 50))
-    BIND(FloatBinding::bindSliderAndTextbox(
-              ui->cameraFarSlider, ui->cameraFarTextbox, settings.cameraFar, 0.1, 50))
-    initializeCamtransFrustum(); // always set the viewing frustum to reasonable settings when we start the program
+//    // Camtrans dock
+//    BIND(BoolBinding::bindCheckbox(ui->cameraOrbitCheckbox, settings.useOrbitCamera))
+//    BIND(FloatBinding::bindDial(ui->transX, settings.cameraPosX, -2, 2, true))
+//    BIND(FloatBinding::bindDial(ui->transY, settings.cameraPosY, -2, 2, true))
+//    BIND(FloatBinding::bindDial(ui->transZ, settings.cameraPosZ, -2, 2, true))
+//    BIND(FloatBinding::bindDial(ui->rotU,   settings.cameraRotU, -20, 20, true))
+//    BIND(FloatBinding::bindDial(ui->rotV,   settings.cameraRotV, -20, 20, true))
+//    BIND(FloatBinding::bindDial(ui->rotW,   settings.cameraRotN, -180, 180, false))
+//    BIND(FloatBinding::bindSliderAndTextbox(
+//              ui->cameraFovSlider, ui->cameraFovTextbox, settings.cameraFov, 1, 179))
+//    BIND(FloatBinding::bindSliderAndTextbox(
+//              ui->cameraNearSlider, ui->cameraNearTextbox, settings.cameraNear, 0.1, 50))
+//    BIND(FloatBinding::bindSliderAndTextbox(
+//              ui->cameraFarSlider, ui->cameraFarTextbox, settings.cameraFar, 0.1, 50))
+//    initializeCamtransFrustum(); // always set the viewing frustum to reasonable settings when we start the program
 
 
     // Ray dock
     BIND(BoolBinding::bindCheckbox(ui->raySuperSamping,          settings.useSuperSampling))
     BIND(IntBinding::bindTextbox(ui->raySuperSamplesTextbox,   settings.numSuperSamples))
-    BIND(BoolBinding::bindCheckbox(ui->rayAntiAliasing,          settings.useAntiAliasing))
+//    BIND(BoolBinding::bindCheckbox(ui->rayAntiAliasing,          settings.useAntiAliasing))
     BIND(BoolBinding::bindCheckbox(ui->rayShadows,               settings.useShadows))
-    BIND(BoolBinding::bindCheckbox(ui->rayTextureMapping,        settings.useTextureMapping))
+//    BIND(BoolBinding::bindCheckbox(ui->rayTextureMapping,        settings.useTextureMapping))
     BIND(BoolBinding::bindCheckbox(ui->rayReflection,            settings.useReflection))
     BIND(BoolBinding::bindCheckbox(ui->rayRefraction,            settings.useRefraction))
     BIND(BoolBinding::bindCheckbox(ui->rayPointLights,           settings.usePointLights))
     BIND(BoolBinding::bindCheckbox(ui->rayDirectionalLights,     settings.useDirectionalLights))
-    BIND(BoolBinding::bindCheckbox(ui->raySpotLights,            settings.useSpotLights))
+//    BIND(BoolBinding::bindCheckbox(ui->raySpotLights,            settings.useSpotLights))
     BIND(BoolBinding::bindCheckbox(ui->rayMultiThreading,        settings.useMultiThreading))
-    BIND(BoolBinding::bindCheckbox(ui->rayUseKDTree,             settings.useKDTree))
+
+    BIND(IntBinding::bindSliderAndTextbox(
+             ui->shadowHardnessSlider, ui->shadowHardnessTextbox, settings.shadowHardness, 1.f, 20.f))
+    BIND(IntBinding::bindSliderAndTextbox(
+            ui->rayRecursionDepthSlider, ui->rayRecursionDepthTextbox, settings.rayRecursionDepth, 0.f, 10.f))
 
     BIND(ChoiceBinding::bindTabs(ui->tabWidget, settings.currentTab))
 
 #undef BIND
 
     // make sure the aspect ratio updates when m_canvas3D changes size
-    connect(m_canvas3D, SIGNAL(aspectRatioChanged()), this, SLOT(updateAspectRatio()));
+//    connect(m_canvas3D, SIGNAL(aspectRatioChanged()), this, SLOT(updateAspectRatio()));
 }
 
 void MainWindow::changeEvent(QEvent *e) {
@@ -265,13 +268,13 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     QMainWindow::closeEvent(event);
 }
 
-void MainWindow::updateAspectRatio() {
-    // Update the aspect ratio text so the aspect ratio will be correct even if the
-    // 3D canvas isn't visible (the 3D canvas isn't resized when it isn't visible)
-    QSize activeTabSize = ui->tabWidget->currentWidget()->size();
-    float aspectRatio = static_cast<float>(activeTabSize.width()) / static_cast<float>(activeTabSize.height());
-    ui->cameraAspectRatio->setText(QString("Aspect ratio: %1").arg(aspectRatio));
-}
+//void MainWindow::updateAspectRatio() {
+//    // Update the aspect ratio text so the aspect ratio will be correct even if the
+//    // 3D canvas isn't visible (the 3D canvas isn't resized when it isn't visible)
+//    QSize activeTabSize = ui->tabWidget->currentWidget()->size();
+//    float aspectRatio = static_cast<float>(activeTabSize.width()) / static_cast<float>(activeTabSize.height());
+//    ui->cameraAspectRatio->setText(QString("Aspect ratio: %1").arg(aspectRatio));
+//}
 
 
 void MainWindow::settingsChanged() {
@@ -281,9 +284,8 @@ void MainWindow::settingsChanged() {
 
 void MainWindow::setAllRayFeatures(bool checked) {
     ui->raySuperSamping->setChecked(checked);
-    ui->rayAntiAliasing->setChecked(checked);
+//    ui->rayAntiAliasing->setChecked(checked);
     ui->rayShadows->setChecked(checked);
-    ui->rayTextureMapping->setChecked(checked);
     ui->rayReflection->setChecked(checked);
     ui->rayRefraction->setChecked(checked);
     ui->rayMultiThreading->setChecked(checked);
@@ -322,7 +324,7 @@ void MainWindow::fileOpen() {
             m_sceneParser = std::unique_ptr<CS123XmlSceneParser>(new CS123XmlSceneParser(file.toLatin1().data()));
             if (m_sceneParser->parse()) {
                 m_canvas3D->loadSceneviewSceneFromParser(*m_sceneParser);
-                ui->showSceneviewInstead->setChecked(true);
+//                ui->showSceneviewInstead->setChecked(true);
 
                 // Set the camera for the new scene
                 CS123SceneCameraData camera;
@@ -336,9 +338,9 @@ void MainWindow::fileOpen() {
                     cam->setHeightAngle(camera.heightAngle);
                 }
 
-                if (settings.useOrbitCamera) {
-                    ui->cameraOrbitCheckbox->setChecked(false);
-                }
+//                if (settings.useOrbitCamera) {
+//                    ui->cameraOrbitCheckbox->setChecked(false);
+//                }
 
                 activateCanvas3D();
             } else {
@@ -388,39 +390,34 @@ void MainWindow::renderImage() {
 
     ui->tabWidget->setCurrentIndex(TAB_2D);
 
-    OpenGLScene *glScene = m_canvas3D->getScene();
-    if (glScene && m_sceneParser) {
-        // TODO: Set up RayScene from glScene and call ui->canvas2D->setScene()
+    // Disable the UI so the user can't interfere with the raytracing
+    setAllEnabled(false);
 
-        // Disable the UI so the user can't interfere with the raytracing
-        setAllEnabled(false);
+    // Swap the "render" button for the "stop rendering" button
+    ui->rayRenderButton->setHidden(true);
+    ui->rayStopRenderingButton->setHidden(false);
 
-        // Swap the "render" button for the "stop rendering" button
-        ui->rayRenderButton->setHidden(true);
-        ui->rayStopRenderingButton->setHidden(false);
+    // Render the image
+    QSize activeTabSize = ui->tabWidget->currentWidget()->size();
+    CS123SceneCameraData camera;
+//    m_sceneParser->getCameraData(camera);
+//	ui->canvas2D->setScene(new RayScene{ *glScene });
+    ui->canvas2D->renderImage(&camera, activeTabSize.width(), activeTabSize.height());
 
-        // Render the image
-        QSize activeTabSize = ui->tabWidget->currentWidget()->size();
-        CS123SceneCameraData camera;
-        m_sceneParser->getCameraData(camera);
-        ui->canvas2D->setScene(new RayScene{ *glScene });
-        ui->canvas2D->renderImage(&camera, activeTabSize.width(), activeTabSize.height());
+    // Swap the "stop rendering" button for the "render" button
+    ui->rayRenderButton->setHidden(false);
+    ui->rayStopRenderingButton->setHidden(true);
 
-        // Swap the "stop rendering" button for the "render" button
-        ui->rayRenderButton->setHidden(false);
-        ui->rayStopRenderingButton->setHidden(true);
-
-        // Enable the UI again
-        setAllEnabled(true);
-    }
+    // Enable the UI again
+    setAllEnabled(true);
 }
 
 void MainWindow::setAllEnabled(bool enabled) {
     QList<QWidget *> widgets;
-    widgets += ui->brushDock;
-    widgets += ui->filterDock;
+//    widgets += ui->brushDock;
+//    widgets += ui->filterDock;
     widgets += ui->shapesDock;
-    widgets += ui->camtransDock;
+//    widgets += ui->camtransDock;
     widgets += ui->rayAllOrNone;
     widgets += ui->rayFeatures;
     widgets += ui->rayLighting;
@@ -446,7 +443,7 @@ void MainWindow::activateCanvas2D() {
 }
 
 void MainWindow::activateCanvas3D() {
-    ui->tabWidget->setCurrentWidget(ui->tab3D);
+    ui->tabWidget->setCurrentWidget(ui->tab2D);
 }
 
 void MainWindow::clearImage()
@@ -492,17 +489,17 @@ void MainWindow::resetUpVector() {
 }
 
 void MainWindow::resetSliders() {
-    ui->cameraFovTextbox->setText(QString::number(55, 'f', 1));
-    ui->cameraNearTextbox->setText(QString::number(.1, 'f', 1));
-    ui->cameraFarTextbox->setText(QString::number(50, 'f', 1));
+//    ui->cameraFovTextbox->setText(QString::number(55, 'f', 1));
+//    ui->cameraNearTextbox->setText(QString::number(.1, 'f', 1));
+//    ui->cameraFarTextbox->setText(QString::number(50, 'f', 1));
     QCoreApplication::processEvents();
     update();
 }
 
 void MainWindow::initializeCamtransFrustum() {
-    ui->cameraFovTextbox->setText(QString::number(55, 'f', 1));
-    ui->cameraNearTextbox->setText(QString::number(.1, 'f', 1));
-    ui->cameraFarTextbox->setText(QString::number(50, 'f', 1));
+//    ui->cameraFovTextbox->setText(QString::number(55, 'f', 1));
+//    ui->cameraNearTextbox->setText(QString::number(.1, 'f', 1));
+//    ui->cameraFarTextbox->setText(QString::number(50, 'f', 1));
     update();
 }
 

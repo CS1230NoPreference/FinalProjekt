@@ -57,8 +57,8 @@ void Canvas2D::settingsChanged() {
     // TODO: Process changes to the application settings.
     std::cout << "Canvas2d::settingsChanged() called. Settings have changed" << std::endl;
 
-    settings.fractal_depth= settings.shapeParameter1;
-    settings.rendernumber= settings.shapeType;
+//    settings.fractal_depth= settings.shapeParameter1;
+//    settings.rendernumber= settings.shapeType;
 }
 
 // ********************************************************************************************
@@ -176,28 +176,6 @@ void Canvas2D::renderImage(CS123SceneCameraData* camera, int width, int height) 
 
 void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
     this->resize(width, height);
-
-
-    if( settings.renderSphere==settings.rendernumber){
-        std::cout<<"renderSphere"<<std::endl;
-    }
-    if( settings.rendertree==settings.rendernumber){
-          std::cout<<"rendertree"<< std::endl;
-
-    }
-
-    if( settings.rendermandelbulb==settings.rendernumber){
-           std::cout<<"rendermandelbulb"<< std::endl;
-
-    }
-
-    if( settings.renderepicscene1==settings.rendernumber){
-           std::cout<<"renderepicscene1"<< std::endl;
-    }
-
-    if( settings.renderepicscene2==settings.rendernumber){
-           std::cout<<"renderepicscene2"<< std::endl;
-    }
 
     auto Supersampling = settings.useSuperSampling ? settings.numSuperSamples : 1;
 
@@ -352,7 +330,8 @@ void Canvas2D::renderImage(CS123SceneCameraData*, int width, int height) {
 
 
 
-    ObjectRecords[0].DistanceFunction = CreateTree(settings.fractal_depth,2.,.2,1.,0.4,glm::vec4{ 0., 0., 0., 1 });
+    // first: height; second: width
+    ObjectRecords[0].DistanceFunction = CreateTree(settings.fractalDepth, 2.,.2,1.,0.4,glm::vec4{ 0., 0., 0., 1 });
     ObjectRecords[0].Material.cDiffuse = glm::vec4{ 0.76, 0.69, 0.5, 1 };
     ObjectRecords[0].Material.cAmbient = glm::vec4{ 0.1, 0.1, 0.1, 1 };
     ObjectRecords[0].Material.cSpecular = glm::vec4{ 0.25, 0.25, 0.25, 1 };

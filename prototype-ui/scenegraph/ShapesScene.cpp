@@ -86,13 +86,13 @@ void ShapesScene::render(SupportCanvas3D *context) {
 
     renderPhongPass(context);
 
-    if (settings.drawWireframe) {
-        renderWireframePass(context);
-    }
+//    if (settings.drawWireframe) {
+//        renderWireframePass(context);
+//    }
 
-    if (settings.drawNormals) {
-        renderNormalsPass(context);
-    }
+//    if (settings.drawNormals) {
+//        renderNormalsPass(context);
+//    }
 }
 
 void ShapesScene::renderPhongPass(SupportCanvas3D *context) {
@@ -109,7 +109,7 @@ void ShapesScene::renderPhongPass(SupportCanvas3D *context) {
 }
 
 void ShapesScene::setPhongSceneUniforms() {
-    m_phongShader->setUniform("useLighting", settings.useLighting);
+//    m_phongShader->setUniform("useLighting", settings.useLighting);
     m_phongShader->setUniform("useArrowOffsets", false);
     m_phongShader->setUniform("isShapeScene", true);
     m_phongShader->applyMaterial(m_material);
@@ -182,14 +182,14 @@ void ShapesScene::settingsChanged() {
     m_shape = std::make_unique<OpenGLShape>();
 
     auto CreateShape = [] {
-        if (settings.shapeType == ShapeType::SHAPE_CUBE)
-            return Shape::Spatial::DrawCube(settings.shapeParameter1);
-        else if (settings.shapeType == ShapeType::SHAPE_CYLINDER)
-            return Shape::Spatial::DrawCylinder(settings.shapeParameter1, std::max(settings.shapeParameter2, 3));
-        else if (settings.shapeType == ShapeType::SHAPE_CONE)
-            return Shape::Spatial::DrawCone(settings.shapeParameter1, std::max(settings.shapeParameter2, 3));
+        if (settings.shapeType == ShapeType::SPHERE_SCENE)
+            return Shape::Spatial::DrawCube(settings.fractalDepth);
+        else if (settings.shapeType == ShapeType::MB2_SCENE)
+            return Shape::Spatial::DrawCylinder(settings.fractalDepth, std::max(settings.fractalWidth, 3));
+        else if (settings.shapeType == ShapeType::TREE_SCENE)
+            return Shape::Spatial::DrawCone(settings.fractalDepth, std::max(settings.fractalWidth, 3));
         else
-            return Shape::Spatial::DrawSphere(std::max(settings.shapeParameter1, 2), std::max(settings.shapeParameter2, 3));
+            return Shape::Spatial::DrawSphere(std::max(settings.fractalDepth, 2), std::max(settings.fractalWidth, 3));
     };
 
     m_shape->m_vertexData = Shape::Export(CreateShape());

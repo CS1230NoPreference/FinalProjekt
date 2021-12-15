@@ -27,30 +27,15 @@ void Settings::loadSettingsOrDefaults() {
     // Set the default values below
     QSettings s("CS123", "CS123");
 
-    // Brush
-    brushType = s.value("brushType", BRUSH_LINEAR).toInt();
-    brushRadius = s.value("brushRadius", 50).toInt();
-    brushColor.r = s.value("brushRed", 127).toInt();
-    brushColor.g = s.value("brushGreen", 255).toInt();
-    brushColor.b = s.value("brushBlue", 0).toInt();
-    brushColor.a = s.value("brushAlpha", 20).toInt();
-
-    // Filter
-    filterType = s.value("filterType", FILTER_EDGE_DETECT).toInt();
-    edgeDetectSensitivity = s.value("edgeDetectSensitivity", 0.5f).toDouble();
-    blurRadius = s.value("blurRadius", 10).toInt();
-    scaleX = s.value("scaleX", 2).toDouble();
-    scaleY = s.value("scaleY", 2).toDouble();
-    rotateAngle = s.value("rotateAngle", 0).toInt();
-
     // Shapes
-    shapeType = s.value("shapeType", SHAPE_SPHERE).toInt();
-    shapeParameter1 = s.value("shapeParameter1", 15).toInt();
-    shapeParameter2 = s.value("shapeParameter2", 15).toInt();
-    shapeParameter3 = s.value("shapeParameter3", 15).toDouble();
-    useLighting = s.value("useLighting", true).toBool();
-    drawWireframe = s.value("drawWireframe", true).toBool();
-    drawNormals = s.value("drawNormals", false).toBool();
+    shapeType = s.value("shapeType", MB1_SCENE).toInt();
+    fractalDepth = s.value("fractalDepth", 15).toInt();
+    fractalWidth = s.value("fractalWith", 5).toInt();
+    fractalHeight = s.value("fractalHeight", 5).toInt();
+    mbDepth = s.value("mbDepth", 8).toInt();
+//    useLighting = s.value("useLighting", true).toBool();
+//    drawWireframe = s.value("drawWireframe", true).toBool();
+//    drawNormals = s.value("drawNormals", false).toBool();
 
     // Camtrans
     useOrbitCamera = s.value("useOrbitCamera", true).toBool();
@@ -63,14 +48,14 @@ void Settings::loadSettingsOrDefaults() {
     numSuperSamples = s.value("numSuperSamples", 2).toInt();
     useAntiAliasing = s.value("useAntiAliasing", true).toBool();
     useShadows = s.value("useShadows", false).toBool();
-    useTextureMapping = s.value("useTextureMapping", false).toBool();
+    shadowHardness = s.value("shadowHardness", 2).toInt();
     useReflection = s.value("useReflection", false).toBool();
     useRefraction = s.value("useRefraction", false).toBool();
+    rayRecursionDepth = s.value("rayRecursionDepth", 1).toInt();
     useMultiThreading = s.value("useMultiThreading", true).toBool();
     usePointLights = s.value("usePointLights", true).toBool();
     useDirectionalLights = s.value("useDirectionalLights", true).toBool();
     useSpotLights = s.value("useSpotLights", true).toBool();
-    useKDTree = s.value("useKDTree", true).toBool();
 
     currentTab = s.value("currentTab", TAB_2D).toBool();
 
@@ -105,12 +90,13 @@ void Settings::saveSettings() {
 
     // Shapes
     s.setValue("shapeType", shapeType);
-    s.setValue("shapeParameter1", shapeParameter1);
-    s.setValue("shapeParameter2", shapeParameter2);
-    s.setValue("shapeParameter3", shapeParameter3);
-    s.setValue("useLighting", useLighting);
-    s.setValue("drawWireframe", drawWireframe);
-    s.setValue("drawNormals", drawNormals);
+    s.setValue("fractalDepth", fractalDepth);
+    s.setValue("fractalWidth", fractalWidth);
+    s.setValue("fractalHeight", fractalHeight);
+    s.setValue("mbDepth", mbDepth);
+//    s.setValue("useLighting", useLighting);
+//    s.setValue("drawWireframe", drawWireframe);
+//    s.setValue("drawNormals", drawNormals);
 
     // Camtrans
     s.setValue("useOrbitCamera", useOrbitCamera);
@@ -123,14 +109,14 @@ void Settings::saveSettings() {
     s.setValue("numSuperSamples", numSuperSamples);
     s.setValue("useAntiAliasing", useAntiAliasing);
     s.setValue("useShadows", useShadows);
-    s.setValue("useTextureMapping", useTextureMapping);
+    s.setValue("shadowHardness", shadowHardness);
     s.setValue("useReflection", useReflection);
     s.setValue("useRefraction", useRefraction);
+    s.setValue("rayRecursionDepth", rayRecursionDepth);
     s.setValue("useMultiThreading", useMultiThreading);
     s.setValue("usePointLights", usePointLights);
     s.setValue("useDirectionalLights", useDirectionalLights);
     s.setValue("useSpotLights", useSpotLights);
-    s.setValue("useKDTree", useKDTree);
 
     s.setValue("currentTab", currentTab);
 }

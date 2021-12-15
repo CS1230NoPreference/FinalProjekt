@@ -36,13 +36,13 @@ enum FilterType {
 
 // Enumeration values for the Shapes that the user can select in the GUI.
 enum ShapeType {
-    SHAPE_CUBE,
-    SHAPE_CONE,
-    SHAPE_SPHERE,
-    SHAPE_CYLINDER,
-    SHAPE_TORUS,
-    SHAPE_SPECIAL_1,
-    SHAPE_SPECIAL_2,
+    SPHERE_SCENE,
+    TREE_SCENE,
+    MB1_SCENE,
+    MB2_SCENE,
+    EPIC_SCENE_1,
+    EPIC_SCENE_2,
+    EPIC_SCENE_3,
     NUM_SHAPE_TYPES
 };
 
@@ -99,12 +99,13 @@ struct Settings {
     // Shapes
     bool useSceneviewScene;
     int shapeType;              // Selected shape type
-    int shapeParameter1;
-    int shapeParameter2;
-    float shapeParameter3;
-    bool useLighting;           // Enable default lighting
-    bool drawWireframe;         // Draw wireframe only
-    bool drawNormals;           // Turn normals on and off
+    int fractalDepth;
+    int fractalWidth;
+    int fractalHeight;
+    int mbDepth;
+//    bool useLighting;           // Enable default lighting
+//    bool drawWireframe;         // Draw wireframe only
+//    bool drawNormals;           // Turn normals on and off
 
     // Camtrans
     bool useOrbitCamera;        // Use the built-in orbiting camera instead of the Camtrans camera
@@ -126,29 +127,19 @@ struct Settings {
     int numSuperSamples;        // Controls the number of samples per pixel.
     bool useAntiAliasing;       // Enable or disable anti-aliasing.
     bool useShadows;            // Enable or disable shadows.
-    bool useTextureMapping;     // Enable or disable texture mapping.
+    int shadowHardness;			// Set shadow hardness.
     bool useReflection;         // Enable or disable reflection.
     bool useRefraction;         // Enable or disable refraction (this is extra credit).
+    int rayRecursionDepth;		// Set ray recursion/refraction depth.
     bool useMultiThreading;     // Enable or disable multi-threading (extra credit).
     bool usePointLights;        // Enable or disable point lighting.
     bool useDirectionalLights;  // Enable or disable directional lighting (extra credit).
     bool useSpotLights;         // Enable or disable spot lights (extra credit).
-    bool useKDTree;
 
     int getSceneMode();
     int getCameraMode();
 
     int currentTab;
-
-    //final
-    int renderSphere=SHAPE_SPHERE ;
-    int rendertree = SHAPE_CUBE;
-    int rendermandelbulb =SHAPE_CONE;
-    int renderepicscene1 =SHAPE_CYLINDER;
-    int renderepicscene2= SHAPE_TORUS;
-    int rendernumber;
-    int fractal_depth;
-
 };
 
 // The global Settings object, will be initialized by MainWindow
