@@ -41,4 +41,4 @@ intersection. Currently, six scenes are supported:
 -   Glass Sphere with Mandelbulb: ![glass sphere with
     mandelbulb](./glassmandelbulb.png)
 -   Winter Wonderland: ![glass trees](./glass_tree_new.png)
--   Forest on Mars: [!forest on mars](./epicscene2.png)
+-   Forest on Mars: ![forest on mars](./epicscene2.png)
