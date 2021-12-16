@@ -1,4 +1,4 @@
-# CSCI1230 Final Project: Fractal Generation
+# CSCI1230 Final Project: Raymarching with Fractals
 
 Team: No Preference
 
@@ -18,12 +18,14 @@ procedurally generated terrains. The raymarcher supports:
 
 Two fractal shapes, a Mandelbulb and a Fractal Tree, are also
 implemented, with customizable fractal depth, height, and width.
+Some scenes also have terrains; these are procedurally generated
+using two octaves of Perlin noise, followed by a sigmoid smoothing.
+
 Currently, the GUI supports toggling raymarcher supersampling and
 multithreading, and all fractal parameters. Given time, we would like to
 incorporate toggling of the other raymarching parameters; although they
 are currently displayed on the UI, they have no effect.
-
--   Note on the UI: the `prototype-ui` folder contains the updated UI.
+-   Note on the UI: The `prototype-ui` folder contains the updated UI.
     Due to time constraints, we were unable to merge two separate
     development branches without compilation errors. The only difference
     between `prototype-ui` and `final` are the supported scenes.
