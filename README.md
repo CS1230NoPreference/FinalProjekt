@@ -9,11 +9,14 @@ interesting scenes like Mandelbulbs (3D fractals), fractal trees, and
 procedurally generated terrains. The raymarcher supports:
 
 -   Directional and spot lighting, according to the Phong BRDF
--   Shadows with ambient occlusion
+-   Soft shadows and partial occlusion
+    -   This allows us to get ambient occlusion for free similar to path tracing
 -   Supersampling
 -   Reflection and Refraction
     -   Physically correct, according to the [Fresnel
         effect](https://www.researchgate.net/figure/Principle-of-the-Fresnel-effect-the-amount-of-reflection-on-a-reflective-surface-depends_fig3_319178578)
+-   Interrupts
+    -     A user defined interrupt service routine is invoked by the raymarcher after each intersection. This allows the user to modify any attribute of the intersected object on the fly before the illumination model is evaluated, e.g., perform position dependent coloring as shown by the mandelbulb examples.
 -   Multithreading
 
 Two fractal shapes, a Mandelbulb and a Fractal Tree, are also
