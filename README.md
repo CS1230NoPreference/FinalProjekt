@@ -16,9 +16,7 @@ procedurally generated terrains. The raymarcher supports:
     -   Physically correct, according to the [Fresnel
         effect](https://www.researchgate.net/figure/Principle-of-the-Fresnel-effect-the-amount-of-reflection-on-a-reflective-surface-depends_fig3_319178578)
 -   Interrupts
-    -     A user defined interrupt service routine is invoked by the raymarcher after each intersection. 
-    -     This allows the user to modify any attribute of the intersected object on the fly before the illumination model is evaluated.
-    -     e.g., perform position dependent coloring as shown by the mandelbulb examples.
+    -   A user defined interrupt service routine is invoked by the raymarcher after each intersection. This allows the user to modify any attribute of the intersected object on the fly before the illumination model is evaluated, e.g., perform position dependent coloring as shown by the mandelbulb examples.
 -   Multithreading
 
 Two fractal shapes, a Mandelbulb and a Fractal Tree, are also
